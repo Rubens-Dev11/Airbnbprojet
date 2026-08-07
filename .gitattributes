@@ -1,0 +1,34 @@
+# Normalisation des fins de ligne.
+#
+# Contexte : `git config core.autocrlf` vaut `true` sur ce poste. Sans ce
+# fichier, chaque poste de travail décide seul du format stocké dans le dépôt,
+# et le fichier versionné finit par ne plus correspondre octet pour octet à ce
+# qui est déployé (piège documenté dans docs/regles-de-travail.md).
+#
+# Règle retenue : LF partout dans le dépôt, quel que soit le poste.
+
+* text=auto eol=lf
+
+# Fichiers Windows qui doivent rester en CRLF
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.ps1  text eol=crlf
+
+# Binaires — jamais de conversion de fins de ligne, jamais de diff texte
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.avif binary
+*.ico  binary
+*.pdf  binary
+*.woff binary
+*.woff2 binary
+*.mp4  binary
+*.zip  binary
+
+# Fichiers générés : exclus des diffs et des statistiques de langage
+pnpm-lock.yaml    -diff linguist-generated
+package-lock.json -diff linguist-generated
+yarn.lock         -diff linguist-generated

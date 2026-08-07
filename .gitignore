@@ -1,0 +1,70 @@
+# ─────────────────────────────────────────────────────────────
+# Secrets — priorité absolue (cf. docs/regles-de-travail.md §8)
+# Aucune clé (OpenAI, Cloudinary, MoMo, JWT) ne doit être versionnée.
+# ─────────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# ─────────────────────────────────────────────────────────────
+# Dépendances
+# ─────────────────────────────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+.yarn/
+
+# ─────────────────────────────────────────────────────────────
+# Artefacts de build
+# Jamais à côté des sources : un artefact périmé masque la source.
+# ─────────────────────────────────────────────────────────────
+dist/
+build/
+out/
+.next/
+.nest/
+*.tsbuildinfo
+.turbo/
+.vercel/
+
+# ─────────────────────────────────────────────────────────────
+# Tests, couverture, logs
+# ─────────────────────────────────────────────────────────────
+coverage/
+.nyc_output/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-error.log*
+logs/
+
+# ─────────────────────────────────────────────────────────────
+# Base de données locale / Prisma
+# Les migrations (prisma/migrations/) SONT versionnées : ne pas ignorer.
+# ─────────────────────────────────────────────────────────────
+*.sqlite
+*.sqlite3
+*.db
+pgdata/
+
+# ─────────────────────────────────────────────────────────────
+# Éditeurs et OS
+# ─────────────────────────────────────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.example
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─────────────────────────────────────────────────────────────
+# Divers
+# ─────────────────────────────────────────────────────────────
+tmp/
+.cache/
+*.local
