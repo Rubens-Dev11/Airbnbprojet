@@ -1,4 +1,31 @@
-# Décisions
+# Décisions — registre provisoire, remplacé
+
+> ## ⚠ Ce document n'a plus autorité
+>
+> Il a été créé le 7 août 2026 pendant l'audit, **avant** la lecture des
+> 21 skills de `agent-skills/`. Ceux-ci imposent un format de registre
+> — l'ADR — et un skill dédié, `memory/store_decisions`, que `recall_context`
+> consulte avant toute décision structurante. Maintenir deux registres en
+> parallèle garantissait qu'ils divergent.
+>
+> **Registre en vigueur : [`docs/memory/decisions/INDEX.md`](memory/decisions/INDEX.md).**
+>
+> | Arbitrage de ce document | Tranché par |
+> |---|---|
+> | D-01 — positionnement face à PUOL | [ADR-005](memory/decisions/ADR-005-agent-ia-canal-principal.md), [ADR-007](memory/decisions/ADR-007-modele-economique-avance-en-ligne.md) |
+> | D-02 — direction visuelle | [ADR-006](memory/decisions/ADR-006-identite-visuelle.md) |
+> | D-03 — architecture | [ADR-003](memory/decisions/ADR-003-monorepo-expo-nextjs.md), [ADR-004](memory/decisions/ADR-004-supabase-et-docker.md) |
+> | D-04 — périmètre v1.0 | Renvoyé au PRD ([ADR-001](memory/decisions/ADR-001-prd-source-de-verite-unique.md)) |
+> | D-05 — coûts et juridique | Partiellement ADR-007 ; le reste **reste ouvert** |
+> | D-06 — qui fait autorité | [ADR-001](memory/decisions/ADR-001-prd-source-de-verite-unique.md) |
+>
+> Les décisions **DA-01 à DA-05** ci-dessous portent sur le versionnement.
+> Elles restent valides et n'ont pas été reprises en ADR.
+>
+> Le document est conservé, non supprimé : il porte le raisonnement qui a mené
+> aux arbitrages, et la trace des options écartées avant qu'ils soient rendus.
+
+---
 
 Deux sections : ce qui est **arrêté** (avec le motif, pour ne pas rouvrir le
 débat tous les trois mois), et ce qui est **ouvert** (avec ce que chaque option

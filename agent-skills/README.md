@@ -2,6 +2,27 @@
 
 Système de skills permettant à un **CEO Agent** autonome de piloter le projet de bout en bout : de l'idée jusqu'à la livraison du code.
 
+> ## ⚠ Règle de chemin, à appliquer avant d'écrire un artefact
+>
+> Les skills ci-dessous indiquent des chemins de sortie comme
+> `strategy/vision.md`, `product/mvp_scope.md`, `tech/stack.md` ou
+> `memory/decisions/ADR-XXX.md`.
+>
+> Dans ce dépôt, **tout artefact de skill est préfixé par `docs/`** :
+> `tech/stack.md` s'écrit en `docs/tech/stack.md`,
+> `memory/decisions/INDEX.md` en `docs/memory/decisions/INDEX.md`.
+> Aucune autre transformation : le sous-chemin est conservé tel quel, pour que
+> la correspondance skill → artefact reste lisible.
+>
+> Motif et alternatives écartées :
+> [ADR-002](../docs/memory/decisions/ADR-002-arborescence-documentaire-unique.md).
+> Deux arborescences documentaires parallèles finissent toujours par diverger,
+> et un correctif appliqué à la copie morte ne produit aucun effet visible.
+>
+> **Décisions déjà rendues** — à lire avant d'exécuter un skill, comme
+> l'impose `memory/recall_context` :
+> [docs/memory/decisions/INDEX.md](../docs/memory/decisions/INDEX.md).
+
 ## Architecture Multi-Agent
 
 ```
