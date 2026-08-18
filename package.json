@@ -1,0 +1,13 @@
+{
+  "name": "plateforme-douala-monorepo",
+  "private": true,
+  "description": "Monorepo — plateforme de réservation de chambres meublées à Douala. Nom de travail : le nom commercial n'est pas arrêté (voir docs/memory/decisions/ADR-003).",
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "typecheck": "pnpm -r --if-present typecheck"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "typescript": "^7.0.2"
+  }
+}

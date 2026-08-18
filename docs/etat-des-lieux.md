@@ -1,5 +1,13 @@
 # État des lieux — document de reprise
 
+> **Mise à jour du 7 août 2026, en fin de journée.** Cet audit décrit le dépôt
+> **tel qu'il a été trouvé**. Depuis, sept ADR ont été rendues
+> (`memory/decisions/INDEX.md`) et un socle de monorepo a été posé
+> (`pnpm-workspace.yaml`, `tsconfig.base.json`, `packages/ui-tokens`). Le
+> constat « aucune ligne de code » du §1 n'est donc plus vrai à la lettre :
+> il reste vrai pour le **code applicatif métier**, qui attend le PRD
+> (ADR-001). Voir `journal.md` pour le détail.
+
 **Date de l'audit** : 7 août 2026
 **Périmètre** : totalité du dépôt `Airbnbprojet`, branche `main`, commit
 `2961ef0`, plus les fichiers non versionnés.

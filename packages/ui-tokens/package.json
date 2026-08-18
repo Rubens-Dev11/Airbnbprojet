@@ -1,0 +1,13 @@
+{
+  "name": "@app/ui-tokens",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Jetons de design — source unique. Consommé par Tailwind (web) et NativeWind (mobile). Voir docs/memory/decisions/ADR-006.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "check:contrast": "node --experimental-strip-types scripts/check-contrast.ts"
+  }
+}

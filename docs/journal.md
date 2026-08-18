@@ -8,6 +8,108 @@ Format : entrée la plus récente en haut.
 
 ---
 
+## 2026-08-07 — Arbitrages rendus, socle du monorepo posé
+
+**Mandat.** Le fondateur délègue l'arbitrage de D-01, D-03 et D-06, lève la
+contrainte de stack (« la stack n'est pas imposée, on est libres »), demande du
+React Native pour iOS et Android, demande de trancher entre Supabase et Docker,
+et fixe la palette à partir d'un visuel de marque XENOS itech.
+
+**Lecture préalable.** Les 21 skills de `agent-skills/` ont été lus
+intégralement avant toute décision — c'était la demande, et c'était nécessaire :
+`documentation/generate_prd` pose déjà que *« le PRD prime sur tout artefact
+antérieur en cas de conflit »*. D-06 avait donc une réponse native dans le
+dépôt. L'inventer aurait été une faute.
+
+**Sept ADR rendues** — index dans `docs/memory/decisions/INDEX.md`. Les deux
+qui méritent d'être justifiées ici :
+
+- **ADR-002** — les artefacts des skills sont préfixés par `docs/`. Appliqués
+  tels quels, ils auraient créé sept dossiers de documentation à la racine, en
+  concurrence avec `docs/`. C'est le premier piège de la liste : deux
+  arborescences qui divergent, et un correctif appliqué à la copie morte.
+- **ADR-004** — la question « Supabase ou Docker » contenait une fausse
+  alternative : la CLI Supabase démarre sa pile **dans** Docker en local. La
+  vraie question était qui exploite la base en production. Retenu : Supabase,
+  et la raison qui pèse le plus n'est pas le gain de temps mais le fait que la
+  règle « un propriétaire ne voit que ses logements » devienne une politique
+  appliquée par PostgreSQL, pas un intercepteur qu'on peut oublier d'appeler.
+
+`docs/decisions.md` est marqué remplacé, pas supprimé : il porte le
+raisonnement qui a mené aux arbitrages.
+
+**Socle posé et vérifié** : `pnpm-workspace.yaml`, `package.json`,
+`tsconfig.base.json` (strict, `noUncheckedIndexedAccess`), et
+`packages/ui-tokens` avec la palette d'ADR-006.
+
+### Trois incidents, tous instructifs
+
+**1. Installation en échec sur le réseau, pas sur la configuration.**
+`pnpm add -D typescript` a résolu TypeScript **7.0.2**, qui télécharge un
+binaire natif par plateforme (`@typescript/typescript-win32-x64`). Ce binaire a
+échoué en `ECONNRESET` après ré-essais. Débit relevé dans la sortie :
+**46 Kio/s**, une requête à 93 secondes. Le manifeste contenait `typescript`,
+le binaire n'était pas sur le disque, `tsc` ne démarrait pas. Relancé avec
+`--fetch-retries=6` et `--network-concurrency=2` : succès après un `ENOTFOUND`.
+**Conséquence à retenir pour la suite : ce réseau est lent et instable. Les
+installations d'Expo et de Next.js seront longues et devront être lancées en
+arrière-plan, pas attendues.**
+
+**2. Le typecheck est passé sur un paquet non chargeable.** `index.ts`
+réexportait `'./colors'` sans extension. `tsc` en résolution `Bundler` compile
+sans broncher ; Node ESM refuse le module. **Typecheck vert, exit 0, et le
+paquet inutilisable** — l'illustration la plus nette de « un signal partiel ne
+prouve rien ». Découvert uniquement parce que le paquet a été *chargé pour de
+vrai*, pas seulement compilé. Corrigé par extension `.ts` explicite +
+`allowImportingTsExtensions`, seule forme qui fonctionne à la fois sous les
+bundlers et sous Node.
+
+**3. Un chiffre faux dans une ADR, attrapé par l'exécution.** ADR-006
+annonçait `19,0:1` de contraste pour `ink-900` sur blanc. Le calcul réel donne
+**18,88:1** : mon arithmétique manuelle avait pris la mauvaise branche de la
+formule WCAG — division par 12,92 alors que le seuil de 0,03928 n'était pas
+atteint. Sans effet sur la décision (AAA dans les deux cas), mais un document
+de référence qui porte un chiffre faux coûte plus cher que pas de document.
+ADR-006 corrigée, avec la mention de l'erreur.
+
+### Le garde-fou né de l'erreur
+
+Plutôt que de recopier des ratios à la main, ils sont désormais vérifiés par
+`pnpm --filter @app/ui-tokens check:contrast`, qui échoue si une modification
+de la palette casse un seuil WCAG.
+
+**Vérifié — sorties réelles lues.**
+
+- `tsc --version` → `Version 7.0.2`, après présence confirmée du binaire de
+  plateforme sur le disque.
+- `@types/node` → `26.2.0`.
+- `pnpm typecheck` → exit 0.
+- `check:contrast` → 7 règles vérifiées, exit 0. Valeurs mesurées :
+  `ink-900`/blanc 18,88 ; `ink-700`/blanc 13,58 ; `violet-700`/blanc 9,40 ;
+  `violet-700`/`paper` 8,43 ; `gray-500`/blanc 5,33 ; `magenta-500`/blanc 5,73.
+- **Contrôle du garde-fou sur un cas qu'il doit rejeter** : `violet-700`
+  temporairement remplacé par `#B79CE0`, sauvegarde du fichier hors du dépôt au
+  préalable. Résultat : 3 règles en échec, exit 1. Fichier restauré, `cmp`
+  confirme l'identité octet pour octet avec la sauvegarde. **Un garde-fou qui
+  n'a jamais échoué n'a jamais été testé.**
+- `tsconfig.json` du paquet corrigé : `include` ne couvrait que `src/`, le
+  script de `scripts/` serait passé hors typecheck sans que rien ne le signale.
+
+**Réponse du fondateur en cours de session** : XENOS itech est sa structure, pas
+la marque du produit, dont le nom n'est pas arrêté. ADR-006 mise à jour : la
+palette devient explicitement **provisoire**, et la règle « aucune couleur en
+dur hors de `packages/ui-tokens` » cesse d'être une bonne pratique pour devenir
+la condition d'un changement de marque à coût d'une heure.
+
+**Non fait.** `apps/mobile` et `apps/web` ne sont pas créés. Les identifiants
+d'application iOS et Android sont définitifs après la première publication en
+store ; le nom commercial n'étant pas arrêté, les créer maintenant ferait
+porter au projet un identifiant provisoire qui a toutes les chances de rester.
+Rien d'autre ne dépend de cette attente : le socle, les jetons et les décisions
+avancent sans.
+
+---
+
 ## 2026-08-07 — Mise sous versionnement du travail d'audit
 
 **Contexte.** Après le rapatriement des skills, trois lots restaient hors du
