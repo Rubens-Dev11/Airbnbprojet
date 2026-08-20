@@ -84,14 +84,66 @@ la même pile. L'autorisation est testable en SQL.
   Cette règle entre dans la définition de « terminé ».
 - Docker doit tourner sur le poste pour développer.
 
-## Ce qui doit être vérifié avant de verrouiller ce choix
+## Mesure de latence — faite le 7 août 2026, depuis le Cameroun
 
-Ces points sont des **hypothèses**, pas des constats. Aucun accès externe n'a
-été utilisé pour les établir.
+**Mesurée, plus supposée.** Aller-retour TCP depuis le poste du fondateur, au
+Cameroun, meilleur de 3 tirs par cible.
+
+| Cible | Aller-retour TCP | Requête complète |
+|---|---|---|
+| AWS Virginie (`us-east-1`) | **218 ms** | 656 ms |
+| AWS Londres (`eu-west-2`) | 228 ms | 1952 ms |
+| **AWS Paris (`eu-west-3`)** | **245 ms** | 715 ms |
+| **AWS Francfort (`eu-central-1`)** | **246 ms** | 722 ms |
+| AWS Irlande (`eu-west-1`) | 279 ms | 878 ms |
+| AWS Le Cap (`af-south-1`) | **284 ms** | 841 ms |
+| **API OpenAI** | **61 ms** | 510 ms |
+
+### Trois enseignements, dont un qui change l'architecture
+
+**1. Il n'y a pas d'avantage africain.** Le Cap est la région la **plus lente**
+des six (284 ms), plus lente que Paris ou Francfort. Le trafic depuis le
+Cameroun remonte vers l'Europe quoi qu'il arrive. Choisir une région africaine
+« parce qu'elle est plus proche » aurait été une erreur fondée sur la
+géographie plutôt que sur le routage.
+
+**2. Toute base est à ~250 ms, et c'est structurant.** L'écart entre régions
+(218 à 284 ms) est faible et dans le bruit d'une connexion variable. Ce qui
+compte n'est pas *quelle* région, mais que **chaque aller-retour vers la base
+coûte un quart de seconde**. Un écran qui enchaîne trois requêtes
+séquentielles dépense 750 ms en réseau pur, avant tout traitement.
+
+> **Conséquence directe sur ADR-003.** Le schéma « l'application mobile
+> interroge Supabase directement » fait payer 250 ms **par requête** depuis
+> l'appareil. Il est écarté pour tout ce qui demande plus d'une requête.
+>
+> **Règle d'architecture retenue** : le serveur Next.js est déployé **dans la
+> même région que la base**. Le client — web ou mobile — fait *un* aller-retour
+> vers ce serveur, qui enchaîne ses requêtes en local à coût quasi nul. Le
+> client paie une fois 250 ms, pas N fois.
+>
+> L'accès direct à Supabase depuis le client reste acceptable pour les lectures
+> unitaires triviales, jamais pour composer un écran.
+
+**3. L'API OpenAI est à 61 ms — le réseau ne sera pas le goulot de l'agent.**
+Quatre fois plus rapide que n'importe quelle région de base, très probablement
+grâce à un point de présence proche. La cible « premier mot affiché en moins de
+3 s » du PRD (S5) est donc jouable : ce sera le temps de génération du modèle
+qui dominera, pas le transport.
+
+**Réserve honnête.** Ces chiffres viennent d'une connexion, un jour, en
+meilleur de trois. Ils suffisent à écarter Le Cap et à établir l'ordre de
+grandeur — ils ne suffisent pas à départager Paris de Francfort. **Région
+retenue : Paris (`eu-west-3`)**, pour la latence et pour la juridiction
+européenne des données ; à confirmer sur un projet réel.
+
+## Ce qui doit encore être vérifié
 
 | À vérifier | Pourquoi c'est bloquant | Quand |
 |---|---|---|
-| Régions disponibles et **latence réelle mesurée depuis Douala** | Sur une connexion 3G camerounaise, un aller-retour vers l'Europe s'ajoute à chaque requête. Si la latence est rédhibitoire, c'est tout l'ADR qui tombe. | Avant le premier écran connecté à la base |
+| ~~Latence depuis Douala~~ | **Fait le 7 août 2026, voir ci-dessus** | — |
+| ~~`btree_gist` activable~~ | **Fait.** `create extension btree_gist` réussit sur PostgreSQL 16, et la contrainte d'exclusion refuse bien les chevauchements — 4 tests dans `supabase/tests/03_rls_refusals.sql`, tous verts. **Réserve** : vérifié sur une image `postgres:16-alpine`, pas encore sur Supabase hébergé | À reconfirmer sur le projet réel |
+| Paris (`eu-west-3`) est-il proposé par Supabase ? | Sinon, repli sur Francfort — écart mesuré : 1 ms | À la création du projet |
 | Coût réel au-delà du palier gratuit | Aucun budget n'existe encore dans le projet | Avant la mise en production |
 | Transformation d'images incluse ou payante | Le CDC exige des images optimisées en WebP pour la 3G. Si la transformation est payante, il faut la faire au téléversement. | Avant le sprint « photos de logements » |
 | Extension `btree_gist` activable | Conditionne la contrainte d'exclusion sur les dates. **Sans elle, la garantie anti-double-réservation n'existe pas.** | Au premier jet de schéma |

@@ -8,6 +8,112 @@ Format : entrée la plus récente en haut.
 
 ---
 
+## 2026-08-07 — Latence mesurée, schéma et politiques RLS livrés et testés
+
+**Demande.** Lancer les mesures, et démarrer le développement sans plus
+attendre. Nom du produit : ne doit rien bloquer, un nom de travail suffit.
+Nom retenu : **Douala Stays**, explicitement provisoire.
+
+### Latence — la mesure a changé une décision d'architecture
+
+Aller-retour TCP depuis le Cameroun, meilleur de 3 tirs : Virginie 218 ms,
+Londres 228 ms, **Paris 245 ms**, Francfort 246 ms, Irlande 279 ms,
+**Le Cap 284 ms**, **API OpenAI 61 ms**.
+
+Trois enseignements, dont un qu'aucun raisonnement de cabinet n'aurait donné :
+
+1. **Aucun avantage africain.** Le Cap est la région la plus lente des six.
+   Le trafic depuis le Cameroun remonte vers l'Europe quoi qu'il arrive.
+   Choisir une région africaine « parce qu'elle est plus proche » aurait été
+   une erreur de géographie contre routage.
+2. **Toute base est à ~250 ms.** L'écart entre régions est dans le bruit. Ce
+   qui compte, c'est que chaque aller-retour coûte un quart de seconde — trois
+   requêtes séquentielles font 750 ms de réseau pur. **Conséquence : le schéma
+   « le client interroge Supabase directement » est écarté** pour tout ce qui
+   demande plus d'une requête. Le serveur Next.js sera colocalisé avec la base ;
+   le client fait un aller-retour, le serveur enchaîne en local. ADR-004 mis à
+   jour, et cela modifie ADR-003.
+3. **OpenAI à 61 ms** — le réseau ne sera pas le goulot de l'agent. La cible
+   « premier mot en moins de 3 s » (PRD S5) est jouable.
+
+Région retenue : Paris (`eu-west-3`).
+
+### Schéma et politiques
+
+`supabase/migrations/0001_initial_schema.sql` et `0002_rls_policies.sql`.
+10 tables, 4 énumérations, RLS activé partout.
+
+**Défaut de conception corrigé avant test.** J'avais placé `address` dans
+`listings`. Or **RLS filtre des lignes, pas des colonnes** : la règle « adresse
+masquée jusqu'au paiement » serait retombée dans le code applicatif, qu'une
+seule route oubliée suffit à contourner — exactement ce qu'ADR-004 veut
+éviter. Adresse et téléphone déplacés dans `listing_contacts`, table séparée
+avec sa propre politique. La règle est désormais appliquée par PostgreSQL.
+
+**Contrainte d'exclusion placée sur `listing_blocks`, pas sur `bookings`.**
+Une contrainte sur `bookings` n'empêcherait pas un blocage manuel du
+propriétaire de recouvrir une réservation confirmée. Centraliser toutes les
+périodes donne **une** garantie au lieu de deux règles à tenir cohérentes à la
+main. C'est la réponse à la lacune CDC-02.
+
+**`bookings.origin_session_id`** relie une réservation à la conversation qui
+l'a produite. Sans ce lien, S1 — la part de réservations initiées via l'agent,
+l'indicateur qui décide de la suite du produit — n'est pas mesurable.
+
+### Décision d'outillage : ne pas attendre la pile complète
+
+`supabase start` télécharge plusieurs images ; sur cette connexion, le retour
+d'information se serait compté en heures. `postgres:16-alpine` était **déjà en
+cache Docker**. J'ai donc écrit une doublure minimale du schéma `auth`
+(`supabase/tests/00_local_shim.sql`) reproduisant `auth.users` et `auth.uid()`
+à l'identique, et validé le SQL en secondes.
+
+**Limite écrite dans le fichier lui-même** : cela valide le schéma, les
+contraintes et les politiques. Cela ne valide **pas** l'intégration réelle avec
+Supabase Auth, Storage ou Realtime. Une validation ici n'autorise pas à écrire
+« ça marche sur Supabase ».
+
+### Deux bugs trouvés par l'exécution
+
+**1. Dans la doublure.** `auth.uid()` castait `request.jwt.claims` en JSON
+avant de tester la chaîne vide : sur une requête anonyme, `''::json` lève une
+erreur et **toute politique appelant `auth.uid()` explosait au lieu de refuser
+proprement**. Corrigé par un repli sur `'{}'`.
+
+**2. Dans le harnais de test.** Premier passage : 17 sur 20. Les trois échecs
+étaient tous des témoins *positifs* — un utilisateur légitime ne voyait rien.
+Cause : `set_config(..., true)` pose la variable au niveau de la **transaction**,
+et en psql hors transaction explicite chaque instruction est sa propre
+transaction. La revendication JWT disparaissait avant l'assertion, `auth.uid()`
+retournait null. **Les politiques étaient justes, le harnais était faux.**
+Corrigé en portée session.
+
+Ce cas mérite d'être retenu : trois tests rouges désignaient le code alors que
+l'erreur était dans l'instrument. Diagnostiquer avant de « corriger » le code a
+évité d'affaiblir des politiques qui étaient correctes.
+
+### Vérifié — sorties réelles lues
+
+- Migrations appliquées sur base neuve : `00_local_shim`, `0001`, `0002`,
+  `01_grants`, `02_fixtures` — toutes OK.
+- **`pnpm db:test` : 20 tests, 0 échec, exit 0.** Dont, nommément :
+  - un locataire au statut `ACCEPTED` (avance non vérifiée) **ne voit pas** les
+    coordonnées de l'hôte ; celui au statut `CONFIRMED` les voit ;
+  - un propriétaire ne voit ni les annonces ni les demandes d'un autre ;
+  - un locataire **ne peut pas** confirmer son propre paiement — sinon il
+    obtiendrait les coordonnées sans payer ;
+  - la contrainte d'exclusion refuse chevauchement et englobement, et autorise
+    une arrivée le jour du départ précédent (intervalle semi-ouvert).
+- `create extension btree_gist` : réussit sur PostgreSQL 16.
+
+### Non fait
+
+`supabase start` était encore en cours au moment du commit — la pile complète
+n'a donc pas servi à cette validation. Les migrations n'ont **pas** encore été
+exécutées sur un projet Supabase hébergé.
+
+---
+
 ## 2026-08-07 — PRD v1.0 et socle web
 
 **Demande.** Rédiger le PRD, et monter `apps/web` en parallèle. L'installation
