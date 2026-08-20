@@ -4,11 +4,19 @@ Base : cahier des charges §11.1. Écarts par rapport au CDC signalés
 explicitement. Ce document décrit un **plan**, pas un état — l'état réel est
 dans `etat-des-lieux.md`.
 
-> **Attention : il existe une troisième roadmap.** `plan.md`, sur la branche
-> distante `check-github-repo-airbnbprojet`, propose son propre découpage en 6
-> sprints, différent de celui du CDC et de celui-ci. Tant que l'arbitrage D-06
-> n'a pas désigné un document de référence unique, **trois plannings
-> contradictoires coexistent**. Comparaison au bas de ce document.
+> ## ⚠ Ce document est remplacé pour la partie planning
+>
+> Le **[PRD v1.0](documentation/PRD.md) §8** définit désormais les phases, et
+> il fait foi ([ADR-001](memory/decisions/ADR-001-prd-source-de-verite-unique.md)).
+> Trois plannings contradictoires coexistaient — CDC §11.1, `plan.md` §4.3 et
+> celui-ci. Le problème a déjà coûté assez cher pour ne pas le reproduire.
+>
+> **Ce qui reste utile ici** : le Sprint 0 de cadrage ci-dessous, qui suit
+> l'avancement des tâches d'organisation, et la **définition de « terminé »**,
+> qui reste en vigueur et s'applique à toute tâche.
+>
+> **Ce qui ne fait plus foi** : le découpage en sprints 1 à 6 et la comparaison
+> des trois plannings en fin de document, conservés pour mémoire.
 
 ---
 

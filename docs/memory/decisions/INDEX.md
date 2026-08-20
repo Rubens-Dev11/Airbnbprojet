@@ -17,13 +17,30 @@ marquée `remplacée par ADR-XXX`.
 | [005](ADR-005-agent-ia-canal-principal.md) | L'agent IA est le canal de réservation principal | Produit | 2026-08-07 | Acceptée |
 | [006](ADR-006-identite-visuelle.md) | Identité visuelle : violet, noir, blanc, gris | Design | 2026-08-07 | Acceptée |
 | [007](ADR-007-modele-economique-avance-en-ligne.md) | Modèle économique : avance en ligne + solde à l'arrivée | Business | 2026-08-07 | Acceptée |
+| [008](ADR-008-perimetre-mvp.md) | Périmètre MVP : encaissement manuel, pas de messagerie, annonces saisies par l'équipe | Produit | 2026-08-07 | Acceptée |
+
+## Alertes à opposer avant d'agir
+
+À vérifier par `memory/recall_context` avant toute tâche technique.
+
+| Si un agent s'apprête à… | Alerte |
+|---|---|
+| Intégrer NotchPay, CinetPay, Flutterwave, Stripe ou tout prestataire de paiement | **Contredit ADR-008.** L'encaissement est manuel au MVP. Suspendre et escalader |
+| Construire une messagerie interne | **Contredit ADR-008.** WhatsApp après révélation du contact |
+| Écrire une couleur en dur hors de `packages/ui-tokens` | **Contredit ADR-006.** La palette est provisoire ; toute couleur en dur rend le futur changement de marque coûteux |
+| Ajouter `VISITEUR` à l'énumération des rôles | **Contredit le PRD §6.** Un visiteur non connecté n'a pas de ligne en base |
+| Écrire un montant en flottant | **Contredit `docs/tech/stack.md` §4.** Le FCFA n'a pas de décimales |
+| Créer une politique RLS sans test de refus | **Contredit ADR-004.** Une politique qui n'a jamais bloqué personne n'a jamais été testée |
+| Nommer un champ de base en français | **Contredit `docs/tech/stack.md` §4.** Schéma en anglais, écart au CDC assumé |
 
 ## Décisions en attente d'arbitrage
 
 | Sujet | Bloque | Ce qui manque |
 |---|---|---|
 | Nom commercial du produit | Identifiants d'application iOS/Android, noms de paquets | Décision du fondateur — voir ADR-003, section « Ce qui reste ouvert » |
-| Agrégateur de paiement Mobile Money | Sprint paiement | Vérification externe de NotchPay / CinetPay (existence, tarifs, KYC, délais) |
+| Montant de l'avance, taux de commission | Ouverture publique | Relevé des prix réels à Douala — voir ADR-007 |
+| Cadre juridique de l'encaissement | Ouverture publique | Conseil externe. **Rien n'existe nulle part** — voir ADR-008 |
+| Agrégateur de paiement Mobile Money | Phase 3 | Vérification externe de NotchPay / CinetPay (existence, tarifs, KYC, délais) |
 | Région d'hébergement Supabase | Mise en production | Mesure de latence réelle depuis Douala — voir ADR-004 |
 
 ## Correspondance avec l'ancien registre

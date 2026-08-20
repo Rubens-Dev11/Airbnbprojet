@@ -9,10 +9,11 @@ explicitement.
 | # | Document | À quoi il sert | Quand le mettre à jour |
 |---|---|---|---|
 | 0 | [regles-de-travail.md](regles-de-travail.md) | **Méthode de travail. Contraignant.** À lire avant toute contribution. | Rarement — décision du porteur du projet |
-| 1 | [memory/decisions/INDEX.md](memory/decisions/INDEX.md) | **Registre des décisions (ADR). Fait foi.** | À chaque décision structurante, via le skill `store_decisions` |
-| 2 | [tech/stack.md](tech/stack.md) | Stack retenue, conventions de code, arborescence cible | À chaque changement de stack ou de convention |
-| 3 | [etat-des-lieux.md](etat-des-lieux.md) | Document de reprise : état réel du dépôt, constats, preuves | À chaque fin de tâche |
-| 4 | [roadmap.md](roadmap.md) | Découpage en sprints, backlog, définition de « terminé » | À chaque fin de sprint |
+| 1 | [documentation/PRD.md](documentation/PRD.md) | **Source de vérité produit. Prime sur tout.** Périmètre MVP, user stories, métriques, phases | À chaque changement de périmètre, avec entrée au changelog |
+| 2 | [memory/decisions/INDEX.md](memory/decisions/INDEX.md) | **Registre des décisions (ADR). Fait foi.** Contient les alertes à opposer avant d'agir | À chaque décision structurante, via le skill `store_decisions` |
+| 3 | [tech/stack.md](tech/stack.md) | Stack retenue, conventions de code, arborescence cible | À chaque changement de stack ou de convention |
+| 4 | [etat-des-lieux.md](etat-des-lieux.md) | Document de reprise : état réel du dépôt, constats, preuves | À chaque fin de tâche |
+| — | [roadmap.md](roadmap.md) | Sprint 0 et **définition de « terminé »** toujours en vigueur. Le planning est remplacé par le PRD §8 | Sprint 0 uniquement |
 | 5 | [fonctionnalites-critiques.md](fonctionnalites-critiques.md) | Liste de non-régression, à vérifier avant/après chaque modification | Dès qu'une fonctionnalité est livrée |
 | 6 | [veille-concurrence.md](veille-concurrence.md) | Ce que fait la concurrence locale réelle | À chaque nouvelle observation |
 | 7 | [structure-cible.md](structure-cible.md) | Réorganisation des dossiers de référence + commandes | Quand la structure évolue |
