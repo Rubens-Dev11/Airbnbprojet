@@ -8,6 +8,72 @@ Format : entrée la plus récente en haut.
 
 ---
 
+## 2026-08-07 — Une page réelle trouve ce que 20 tests verts n'avaient pas vu
+
+**Déclencheur.** Le fondateur se connecte et tombe sur la page de démonstration
+de `create-next-app`. Deux défauts, dont un bien plus grave que l'autre.
+
+### Défaut 1 — aucune porte d'entrée
+
+J'avais construit les écrans d'administration sans jamais remplacer la page
+d'accueil ni y mettre le moindre lien. Les écrans existaient et étaient
+inaccessibles autrement qu'en tapant l'URL. Remplacée par une vraie page.
+
+**Vérifié d'abord** : les journaux de `next dev` montrent
+`GET /admin/listings 307` avant connexion puis `200` après — la garde
+`requireAdmin()` fonctionnait, la session aussi. Le problème était bien la
+navigation, pas l'authentification.
+
+### Défaut 2 — les GRANT vivaient dans un fichier de TEST
+
+La nouvelle page affichait « 0 quartiers » et
+**« permission denied for table listings »**.
+
+Cause : les privilèges de table étaient accordés dans
+`supabase/tests/01_grants.sql`. Un fichier de test. **La vraie base ne les a
+jamais eus.** Le harnais s'accordait donc des droits que la production n'avait
+pas, et les 20 tests RLS passaient au vert en validant un monde qui n'existait
+qu'à l'intérieur du test.
+
+C'est le défaut le plus instructif de la session. Ni le typecheck, ni le build,
+ni la suite de tests ne pouvaient le voir — **par construction** : un test qui
+crée lui-même ses conditions ne mesure plus l'écart avec la réalité. Il a fallu
+une page réelle, contre le vrai Supabase, pour qu'il apparaisse.
+
+Corrigé par `0005_grants.sql`, avec les `alter default privileges` pour que la
+prochaine table ajoutée n'ait pas à redécouvrir le problème en production.
+`tests/01_grants.sql` ne fait plus rien, sinon **vérifier activement** que
+`anon` a bien `SELECT` sur `listings` — et échouer sinon.
+
+**Règle qui en découle, désormais écrite dans les deux fichiers** : un fichier
+de test ne doit jamais accorder un droit, créer une table ni activer une
+extension dont la production a besoin. Sinon il teste sa propre configuration.
+
+### Ce que l'affichage d'erreur a rapporté
+
+La page affichait `error.message` tel quel plutôt qu'une liste vide. C'est ce
+qui a rendu le diagnostic immédiat : « permission denied » et « aucune annonce »
+se ressemblent à l'écran et se diagnostiquent en sens opposés. Le choix, noté
+comme discutable au moment de l'écrire, s'est payé en une seule capture.
+
+### Vérifié — sorties réelles lues
+
+- Page rechargée après correction : **24 quartiers affichés, aucune erreur**.
+  Chaîne complète exercée — navigateur, serveur Next, Supabase, RLS anonyme.
+- L'état « catalogue vide » est bien un état vide, non une requête en échec.
+- `pnpm db:test` : 20 tests, 0 échec. `pnpm check` : exit 0.
+- `supabase db reset` : les 5 migrations s'appliquent sur PostgreSQL 17.6.1.
+- `next build` : exit 0, 5 routes, `ƒ Proxy (Middleware)` listé.
+
+### Non fait
+
+L'écran d'administration **connecté** n'a toujours pas été vu par moi : je ne
+saisis pas de mot de passe dans un formulaire. Les journaux prouvent qu'il rend
+un 200 pour une session administrateur ; son apparence reste à confirmer par le
+fondateur.
+
+---
+
 ## 2026-08-07 — Quartiers, écran d'administration, et premier passage sur le vrai Supabase
 
 **Demande.** Le seed des quartiers et l'écran d'administration.
