@@ -8,6 +8,89 @@ Format : entrée la plus récente en haut.
 
 ---
 
+## 2026-08-07 — Quartiers, écran d'administration, et premier passage sur le vrai Supabase
+
+**Demande.** Le seed des quartiers et l'écran d'administration.
+
+### Référentiel des quartiers
+
+24 quartiers de Douala avec alias, en migration (`0003`) et non en fichier de
+seed : c'est une donnée de référence dont la production dépend, pas un jeu
+d'essai. Vérifié par requête : « bepanda tapis rouge » → Bepanda,
+« centre administratif » → Bonanjo.
+
+**Réserve écrite dans la migration.** Six quartiers seulement sont attestés par
+une source du dépôt — Akwa, Bonanjo, Deido, Bonapriso (CDC §5.1), Bepanda et
+Carrefour Andem (captures PUOL). Les dix-huit autres viennent de ma
+connaissance générale. Un quartier manquant se corrige en une ligne ; un
+quartier faux proposé par l'agent détruit la confiance. **Liste à valider par
+quelqu'un sur place.**
+
+### Lecture préalable des guides Next.js 16 — elle a payé
+
+`apps/web/AGENTS.md`, généré par le framework, annonçait des ruptures d'API.
+Trois constats tirés des guides embarqués, pas de la mémoire :
+
+- **`middleware.ts` s'appelle `proxy.ts`.** Tous les exemples Supabase en ligne
+  disent `middleware.ts` : le fichier aurait été créé, il n'aurait produit
+  **aucun effet et aucune erreur**. Confirmé à l'exécution — la sortie de
+  `next dev` affiche bien `proxy.ts: 10ms` dans le détail des temps, et le
+  build liste `ƒ Proxy (Middleware)`.
+- **Une Server Action est joignable par un POST direct**, sans passer par
+  l'écran. L'autorisation est donc refaite *à l'intérieur* de l'action.
+- `cookies()` et `searchParams` sont asynchrones.
+
+### Manque trouvé en préparant l'essai réel
+
+**Aucun profil n'était créé à l'inscription.** Rien ne reliait `auth.users` à
+`profiles` : un utilisateur s'inscrivait, sa ligne d'authentification existait,
+son profil non, et toute lecture de rôle retournait vide. Le défaut n'était
+visible ni au typecheck, ni au build, ni dans les tests RLS — ceux-ci insèrent
+leurs profils à la main. Il n'est apparu qu'en créant un vrai compte via l'API
+d'authentification. Migration `0004` ajoutée, avec rôle `TENANT` par défaut :
+un propriétaire est promu par un administrateur, jamais par auto-déclaration.
+
+### Trois défauts d'outillage, tous corrigés
+
+1. **Doublure trop pauvre.** `auth.users` n'avait pas `raw_user_meta_data` ; la
+   migration 0004 passait sur le vrai Supabase et échouait sur le test rapide.
+   Une doublure incomplète ne fait pas gagner du temps, elle fait perdre
+   confiance dans le test. Colonne ajoutée, avec la règle écrite dans le
+   fichier : toute colonne utilisée par une migration doit y exister.
+2. **`run.sh` rejouait le fichier en échec** pour afficher son erreur. Cela
+   modifiait l'état de la base et affichait une erreur **différente de la
+   vraie** — un doublon de clé au lieu de la cause initiale. Un outil de
+   diagnostic qui change ce qu'il mesure envoie chercher au mauvais endroit.
+   Sortie désormais capturée au premier passage.
+3. **`UID` est en lecture seule sous bash.** Mon affectation a été ignorée
+   sans erreur et le script a utilisé l'identifiant du processus. Le résultat
+   final montrait pourtant que le déclencheur avait bien fonctionné.
+
+### Vérifié — sorties réelles lues
+
+- **Les 4 migrations s'appliquent sur le vrai Supabase** (PostgreSQL 17.6.1),
+  via `supabase db reset`. Cela lève le doute d'ADR-004 sur `btree_gist` en
+  environnement réel.
+- **Le déclencheur d'inscription fonctionne** : deux comptes créés par l'API
+  d'authentification, deux profils présents avec le nom issu des métadonnées.
+- `pnpm check` — typecheck des 3 paquets, 7 règles de contraste, **20 tests de
+  base** : exit 0.
+- `next build` : exit 0, `ƒ Proxy (Middleware)` listé, les deux routes
+  d'administration en rendu dynamique.
+- `next dev` : `/admin/listings` renvoie **307** sans session — la garde
+  `requireAdmin()` redirige. La page de connexion s'affiche avec le violet de
+  marque et le fond `paper`, donc les jetons générés sont bien appliqués.
+- `.env.local` confirmé ignoré par git (`apps/web/.gitignore:34`).
+
+### Non fait
+
+**L'écran d'administration n'a pas été vu authentifié.** Je ne saisis pas de
+mot de passe dans un formulaire, y compris sur un compte d'essai local que
+j'ai créé moi-même. Le rendu connecté reste donc à vérifier par le fondateur —
+tout le reste du chemin l'est.
+
+---
+
 ## 2026-08-07 — Latence mesurée, schéma et politiques RLS livrés et testés
 
 **Demande.** Lancer les mesures, et démarrer le développement sans plus

@@ -23,10 +23,20 @@
 
 create schema if not exists auth;
 
+-- Les colonnes reproduites sont celles dont le code dépend réellement.
+-- `raw_user_meta_data` a été ajoutée le 7 août 2026 après que la migration
+-- 0004 a échoué ici alors qu'elle passait sur le vrai Supabase : une doublure
+-- trop pauvre ne fait pas gagner du temps, elle fait perdre confiance dans le
+-- test. Toute colonne utilisée par une migration doit exister ici.
 create table if not exists auth.users (
-  id    uuid primary key default gen_random_uuid(),
-  email text unique
+  id                 uuid primary key default gen_random_uuid(),
+  email              text unique,
+  raw_user_meta_data jsonb not null default '{}'::jsonb
 );
+
+-- Rattrapage si la table existait déjà sans la colonne.
+alter table auth.users
+  add column if not exists raw_user_meta_data jsonb not null default '{}'::jsonb;
 
 -- Le repli sur '{}' n'est pas cosmétique : sans lui, une requête anonyme —
 -- où `request.jwt.claims` est vide — fait échouer le cast `''::json` et

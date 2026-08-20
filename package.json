@@ -6,7 +6,9 @@
   "scripts": {
     "typecheck": "pnpm -r --if-present typecheck",
     "db:test": "bash supabase/tests/run.sh",
-    "check": "pnpm typecheck && pnpm --filter @app/ui-tokens check:contrast && pnpm db:test"
+    "check": "pnpm typecheck && pnpm --filter @app/ui-tokens check:contrast && pnpm db:test",
+    "db:types": "bash supabase/gen-types.sh",
+    "tokens:css": "node --experimental-strip-types packages/ui-tokens/scripts/emit-css.ts"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",

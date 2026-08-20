@@ -1,0 +1,24 @@
+/* FICHIER GÉNÉRÉ — ne pas éditer.
+ * Source : packages/ui-tokens/src/colors.ts
+ * Régénérer : pnpm tokens:css
+ * Décision : docs/memory/decisions/ADR-006-identite-visuelle.md
+ */
+@theme {
+  --color-brand-50: #F8F4FC;
+  --color-brand-100: #EFE7F7;
+  --color-brand-200: #DDCBEF;
+  --color-brand-300: #C4A9E4;
+  --color-brand-400: #A97FD6;
+  --color-brand-500: #8B4CC4;
+  --color-brand-600: #7038A8;
+  --color-brand-700: #5D2E8C;
+  --color-brand-800: #4F2270;
+  --color-brand-900: #3D1A52;
+  --color-accent-500: #B02A9D;
+  --color-ink-700: #2E2E2E;
+  --color-ink-900: #111111;
+  --color-gray-100: #EDEDED;
+  --color-gray-300: #D4D4D4;
+  --color-gray-500: #6B6B6B;
+  --color-paper: #F4F2F3;
+}

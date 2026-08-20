@@ -29,13 +29,20 @@ for _ in $(seq 1 60); do
   sleep 1
 done
 
+# La sortie est capturée AU PREMIER passage.
+# La version précédente rejouait le fichier en cas d'échec pour afficher
+# l'erreur — ce qui modifiait l'état de la base et affichait une erreur
+# DIFFÉRENTE de la vraie (un doublon de clé au lieu de la cause initiale).
+# Un outil de diagnostic qui change ce qu'il mesure envoie chercher au mauvais
+# endroit. Constaté le 7 août 2026.
 apply() {
   printf '  %-42s ' "$(basename "$1")"
-  if docker exec -i "$CONTAINER" psql -U postgres -v ON_ERROR_STOP=1 -q < "$1" >/dev/null 2>&1; then
+  local out
+  if out=$(docker exec -i "$CONTAINER" psql -U postgres -v ON_ERROR_STOP=1 -q < "$1" 2>&1); then
     echo 'OK'
   else
     echo 'ECHEC'
-    docker exec -i "$CONTAINER" psql -U postgres -v ON_ERROR_STOP=1 -q < "$1" 2>&1 | head -20
+    echo "$out" | head -20
     exit 1
   fi
 }

@@ -28,17 +28,42 @@ insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-0000000000c1', 'tenant-paye@test.cm'),
   ('00000000-0000-0000-0000-0000000000c2', 'tenant-non-paye@test.cm');
 
+-- `on conflict do update` et non un simple insert : depuis la migration 0004,
+-- un déclencheur crée déjà le profil à l'insertion dans auth.users. On ajuste
+-- donc le rôle plutôt que de recréer la ligne.
+-- Ce comportement est lui-même une vérification : si le déclencheur cessait de
+-- fonctionner, l'insertion ci-dessus créerait les profils et rien ne le
+-- signalerait — d'où le contrôle explicite qui suit.
+do $$
+declare n int;
+begin
+  select count(*) into n from profiles;
+  if n <> 5 then
+    raise exception 'le declencheur 0004 n''a pas cree les 5 profils attendus (% trouves)', n;
+  end if;
+end $$;
+
 insert into profiles (id, role, full_name, is_approved) values
   ('00000000-0000-0000-0000-0000000000a1', 'ADMIN',  'Admin',            true),
   ('00000000-0000-0000-0000-0000000000b1', 'OWNER',  'Proprietaire Un',  true),
   ('00000000-0000-0000-0000-0000000000b2', 'OWNER',  'Proprietaire Deux',true),
   ('00000000-0000-0000-0000-0000000000c1', 'TENANT', 'Locataire Paye',   true),
-  ('00000000-0000-0000-0000-0000000000c2', 'TENANT', 'Locataire Non Paye', true);
+  ('00000000-0000-0000-0000-0000000000c2', 'TENANT', 'Locataire Non Paye', true)
+on conflict (id) do update
+  set role = excluded.role,
+      full_name = excluded.full_name,
+      is_approved = excluded.is_approved;
 
 -- --- Référentiel -----------------------------------------------------------
-insert into neighborhoods (id, name, aliases) values
-  ('00000000-0000-0000-0000-0000000000d1', 'Akwa',   '{akwa,"akwa nord"}'),
-  ('00000000-0000-0000-0000-0000000000d2', 'Bepanda', '{bepanda,"bepanda tapis rouge"}');
+-- Les quartiers viennent de la migration 0003, ils ne sont PAS redéfinis ici :
+-- un jeu d'essai qui duplique une donnée de référence finit par diverger
+-- d'elle, et le test valide alors un monde qui n'existe pas.
+do $$
+begin
+  if (select count(*) from neighborhoods) = 0 then
+    raise exception 'referentiel des quartiers vide — la migration 0003 n''a pas ete appliquee';
+  end if;
+end $$;
 
 -- --- Logements -------------------------------------------------------------
 -- listing1 : actif, propriétaire 1. listing2 : INACTIF, propriétaire 2.
@@ -46,11 +71,11 @@ insert into listings (id, owner_id, neighborhood_id, title, landmark,
                       price_per_night, listing_type, is_active) values
   ('00000000-0000-0000-0000-0000000000e1',
    '00000000-0000-0000-0000-0000000000b1',
-   '00000000-0000-0000-0000-0000000000d1',
+   (select id from neighborhoods where name = 'Akwa'),
    'Studio climatise Akwa', 'pres du carrefour', 20000, 'STUDIO', true),
   ('00000000-0000-0000-0000-0000000000e2',
    '00000000-0000-0000-0000-0000000000b2',
-   '00000000-0000-0000-0000-0000000000d2',
+   (select id from neighborhoods where name = 'Bepanda'),
    'Chambre meublee Bepanda', 'en bord de route', 16500, 'ROOM', false);
 
 insert into listing_contacts (listing_id, exact_address, contact_phone) values
