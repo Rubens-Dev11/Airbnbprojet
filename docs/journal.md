@@ -8,6 +8,78 @@ Format : entrée la plus récente en haut.
 
 ---
 
+## 2026-08-07 — Publication et photos : l'écran d'administration devient utilisable
+
+**Déclencheur.** Le fondateur envoie une capture de l'écran d'administration
+connecté. Il fonctionne — c'était le dernier maillon que je n'avais pas vu.
+Mais le regarder a montré deux manques que la lecture du code n'avait pas
+soulevés, et qui rendaient la Phase 0 impossible.
+
+### Deux manques bloquants, de ma responsabilité
+
+1. **Aucun moyen de publier une annonce.** Elle naît en brouillon (choix
+   délibéré) et rien dans l'interface ne la met en ligne. On pouvait saisir
+   vingt annonces et n'en montrer aucune.
+2. **Aucun téléversement de photos.** Or le CDC §1 identifie « photos
+   inexistantes ou trompeuses » comme un problème central du marché de Douala.
+   Une annonce sans photo ne convertit pas — construire le catalogue sans
+   photos aurait produit 30 fiches inutiles.
+
+Les deux passaient le typecheck, le build et les 20 tests. Rien ne pouvait les
+détecter : ce ne sont pas des défauts, ce sont des **absences**. Seul un
+regard sur l'écran, avec l'usage réel en tête, les fait apparaître.
+
+### Ce qui a été ajouté
+
+- `0006_storage_listing_photos.sql` — compartiment `listing-photos`, **public
+  en lecture**. Une photo est une donnée publique au même titre que le prix ;
+  la protéger empêcherait le référencement, seul canal d'acquisition gratuit
+  face à PUOL. Les coordonnées, elles, restent dans `listing_contacts`.
+  Écriture réservée aux administrateurs. Limite à 5 Mo : accepter 20 Mo
+  garantirait des fiches inutilisables sur le marché 3G visé.
+- Action de publication, **avec un refus** : une annonce sans photo ne peut pas
+  être publiée. La règle vaut mieux qu'un rappel dans une documentation que
+  personne ne relit.
+- Téléversement multiple, suppression, et page de détail par annonce.
+
+### Deux choix de conduite d'erreur
+
+- Le contrôle de type et de taille est **refait dans l'action** alors que le
+  compartiment les impose déjà : une erreur du service de stockage arrive sans
+  contexte, un refus applicatif nomme le fichier fautif. L'un protège, l'autre
+  explique.
+- Si le fichier est déposé mais que la ligne échoue, **le fichier est retiré** :
+  sinon il reste un objet payé que plus rien ne désigne. Et si la ligne part
+  sans que le fichier suive, c'est dit à l'écran plutôt que tu.
+
+### La doublure a encore dû suivre
+
+`0006` touche le schéma `storage`, absent de la doublure locale. Plutôt que de
+rendre la migration conditionnelle — ce qui aurait fait diverger test et
+production, exactement le piège corrigé une heure plus tôt —, la doublure a été
+étendue. Sa limite est écrite dedans : cela vérifie que le SQL est valide et
+que les politiques s'appliquent, **pas** que le service de stockage se comporte
+comme en production.
+
+### Vérifié — sorties réelles lues
+
+- `pnpm db:test` : 7 migrations appliquées, 20 tests, 0 échec, exit 0.
+- `supabase db reset` : les 6 migrations passent sur PostgreSQL 17.6.1.
+- Compartiment réellement présent en base : `listing-photos`, public,
+  5 242 880 octets, types `image/jpeg, image/png, image/webp`.
+- `pnpm typecheck` exit 0 sur les 3 paquets.
+- `next build` exit 0, 6 routes, `ƒ Proxy (Middleware)` listé.
+- Page d'accueil rechargée : **24 quartiers, aucune erreur**.
+
+### Non fait
+
+Le téléversement d'une photo n'a **pas** été exercé de bout en bout : cela
+suppose une session administrateur dans un navigateur, donc une saisie de mot
+de passe que je ne fais pas. Le chemin est vérifié jusqu'à la porte ; le
+premier téléversement réel reste à faire par le fondateur.
+
+---
+
 ## 2026-08-07 — Une page réelle trouve ce que 20 tests verts n'avaient pas vu
 
 **Déclencheur.** Le fondateur se connecte et tombe sur la page de démonstration

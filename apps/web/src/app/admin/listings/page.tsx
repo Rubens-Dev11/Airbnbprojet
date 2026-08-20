@@ -57,7 +57,11 @@ export default async function AdminListingsPage() {
             <tbody>
               {listings.map((l) => (
                 <tr key={l.id} className="border-b border-gray-100 hover:bg-brand-50">
-                  <td className="py-3 pr-4 text-ink-900">{l.title}</td>
+                  <td className="py-3 pr-4">
+                    <Link href={`/admin/listings/${l.id}`} className="text-brand-700 hover:underline">
+                      {l.title}
+                    </Link>
+                  </td>
                   <td className="py-3 pr-4 text-ink-700">{l.neighborhoods?.name ?? '—'}</td>
                   <td className="py-3 pr-4 text-ink-700">{LISTING_TYPE_LABELS[l.listing_type]}</td>
                   <td className="py-3 pr-4 text-ink-900">{formatFcfa(l.price_per_night)}</td>

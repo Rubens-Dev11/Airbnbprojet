@@ -70,3 +70,33 @@ end
 $$;
 
 grant usage on schema public, auth to anon, authenticated, service_role;
+
+-- -----------------------------------------------------------------------------
+-- Schéma `storage`, minimal.
+--
+-- Reproduit uniquement ce que les migrations touchent : les compartiments et
+-- la table sur laquelle portent les politiques. Cela vérifie que le SQL de
+-- 0006 est VALIDE et que ses politiques s'appliquent — pas que le service de
+-- stockage se comporte comme en production. La différence est réelle et doit
+-- rester présente à l'esprit.
+-- -----------------------------------------------------------------------------
+create schema if not exists storage;
+
+create table if not exists storage.buckets (
+  id                 text primary key,
+  name               text not null,
+  public             boolean not null default false,
+  file_size_limit    bigint,
+  allowed_mime_types text[]
+);
+
+create table if not exists storage.objects (
+  id        uuid primary key default gen_random_uuid(),
+  bucket_id text references storage.buckets (id),
+  name      text,
+  owner     uuid
+);
+
+alter table storage.objects enable row level security;
+
+grant usage on schema storage to anon, authenticated, service_role;
