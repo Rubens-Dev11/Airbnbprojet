@@ -10,11 +10,13 @@ export const metadata = { title: 'Annonce — administration' };
 /** `params` est une promesse depuis Next.js 15. */
 export default async function ListingAdminPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ nouvelle?: string }>;
 }) {
   await requireAdmin();
-  const { id } = await params;
+  const [{ id }, { nouvelle }] = await Promise.all([params, searchParams]);
 
   const supabase = await createClient();
 
@@ -51,6 +53,14 @@ export default async function ListingAdminPage({
           {listing.landmark ? ` · ${listing.landmark}` : ''}
         </p>
       </div>
+
+      {nouvelle === '1' && (
+        <p role="status" className="rounded border border-brand-300 bg-brand-50 p-4 text-sm text-brand-900">
+          <strong>Annonce enregistrée.</strong> Elle est en brouillon et n&apos;est visible de
+          personne. Ajoutez au moins une photo ci-dessous, puis publiez-la — sans photo, la
+          publication est refusée.
+        </p>
+      )}
 
       <ListingAdminPanel listingId={listing.id} isActive={listing.is_active} photos={photos} />
     </main>

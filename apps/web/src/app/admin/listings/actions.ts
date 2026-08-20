@@ -1,11 +1,12 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { AMENITIES, type Amenity, type ListingType } from '@app/shared';
 import { createClient } from '@/lib/supabase/server.ts';
 import { requireAdmin } from '@/lib/auth.ts';
 
-export type ActionResult = { ok: true; id: string } | { ok: false; error: string };
+export type ActionResult = { ok: false; error: string };
 
 const LISTING_TYPES: readonly ListingType[] = ['ROOM', 'STUDIO', 'APARTMENT', 'VILLA'];
 
@@ -107,7 +108,20 @@ export async function createListing(_prev: unknown, formData: FormData): Promise
   }
 
   revalidatePath('/admin/listings');
-  return { ok: true, id: data.id };
+
+  // Redirection vers la fiche, et non un simple message de succès.
+  //
+  // Une photo doit être rattachée à un `listing_id`, qui n'existe pas avant
+  // l'enregistrement : le parcours est donc nécessairement en deux temps. Mais
+  // annoncer « annonce créée » puis laisser l'utilisateur chercher où ajouter
+  // les photos fait de la seconde étape une impasse. Constaté le 7 août 2026,
+  // la question ayant été posée directement : « où est l'espace pour
+  // téléverser les photos ? »
+  //
+  // `redirect()` lève une exception de contrôle interne à Next : elle doit
+  // rester HORS de tout try/catch, sinon elle est avalée et la redirection
+  // n'a pas lieu.
+  redirect(`/admin/listings/${data.id}?nouvelle=1`);
 }
 
 function str(formData: FormData, key: string): string {

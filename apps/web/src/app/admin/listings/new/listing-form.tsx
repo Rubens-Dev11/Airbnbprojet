@@ -30,15 +30,24 @@ export function ListingForm({
 
   return (
     <form action={formAction} className="flex flex-col gap-6">
+      <ol className="flex flex-wrap items-center gap-2 text-sm text-ink-700">
+        <li className="rounded bg-brand-700 px-3 py-1 font-medium text-white">
+          1. Décrire le logement
+        </li>
+        <span className="text-gray-500">→</span>
+        <li className="rounded border border-gray-300 px-3 py-1">2. Ajouter les photos</li>
+        <span className="text-gray-500">→</span>
+        <li className="rounded border border-gray-300 px-3 py-1">3. Publier</li>
+      </ol>
+      <p className="-mt-3 text-sm text-gray-500">
+        Les photos s&apos;ajoutent à l&apos;étape suivante&nbsp;: elles doivent être rattachées à
+        une annonce, qui n&apos;existe qu&apos;une fois enregistrée. Vous y serez conduit
+        automatiquement.
+      </p>
+
       {state?.ok === false && (
         <p role="alert" className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-900">
           {state.error}
-        </p>
-      )}
-      {state?.ok === true && (
-        <p role="status" className="rounded border border-brand-300 bg-brand-50 p-3 text-sm text-brand-900">
-          Annonce créée ({state.id}). Elle est <strong>inactive</strong> : à relire puis activer
-          avant qu'elle soit visible publiquement.
         </p>
       )}
 
@@ -126,7 +135,7 @@ export function ListingForm({
         disabled={pending}
         className="self-start rounded bg-brand-700 px-6 py-3 font-medium text-white hover:bg-brand-600 disabled:opacity-50"
       >
-        {pending ? 'Enregistrement…' : "Créer l'annonce"}
+        {pending ? 'Enregistrement…' : 'Enregistrer et ajouter les photos →'}
       </button>
     </form>
   );
