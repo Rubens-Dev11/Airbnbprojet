@@ -8,6 +8,97 @@ Format : entrée la plus récente en haut.
 
 ---
 
+## 2026-08-07 — PRD v1.0 et socle web
+
+**Demande.** Rédiger le PRD, et monter `apps/web` en parallèle. L'installation
+web a donc été lancée en arrière-plan **avant** d'écrire le PRD : sur un réseau
+à 46 Kio/s, la faire attendre aurait coûté un quart d'heure pour rien.
+
+### PRD v1.0
+
+`docs/documentation/PRD.md` — source de vérité produit (ADR-001). Il tranche
+D-04 en réduisant fortement le périmètre, par rapport au CDC **et** à
+`plan.md`. Trois coupes, consignées aussi en ADR-008 pour que
+`memory/recall_context` puisse alerter un agent qui partirait dans l'autre sens.
+
+1. **Encaissement manuel de l'avance.** `plan.md` §4.2 plaçait l'agrégateur
+   dans le MVP. L'argument — sans encaissement, pas de revenu — est juste sur
+   le fond mais confond *encaisser* et *automatiser l'encaissement*. Le MVP
+   encaisse réellement ; seule l'automatisation attend. Bénéfice décisif : on
+   mesure le **taux d'abandon devant l'avance**, information que personne
+   n'a et qui conditionne tout le modèle.
+2. **Pas de messagerie interne.** WhatsApp après révélation du contact. La
+   mécanique anti-désintermédiation repose sur le *moment* de la révélation,
+   pas sur le canal.
+3. **Annonces saisies par l'équipe.** L'amorçage impose de saisir les 30 à 50
+   premières à la main ; construire l'auto-publication avant d'avoir un
+   propriétaire autonome, c'est construire à l'aveugle.
+
+Le PRD pose un **point de non-retour délibéré** : la Phase 1 est un prototype
+de l'agent sur données réelles, et sous 80 % de requêtes pertinentes, on ne
+construit pas la suite. Le risque le plus élevé passe en premier.
+
+Les 11 exigences du CDC reportées ou supprimées sont listées avec leur motif
+(§7), comme l'impose le skill `generate_prd` — rien ne disparaît en silence.
+
+`docs/roadmap.md` est marqué remplacé pour sa partie planning : le PRD §8 fait
+foi. Trois plannings contradictoires avaient déjà coûté assez cher.
+
+### Socle web
+
+`create-next-app` a produit **Next.js 16.3.1, React 19.2.8, Tailwind 4.3.3**
+— versions relevées dans la sortie, non supposées.
+
+**Erreur d'analyse de ma part, corrigée.** J'ai d'abord annoncé que
+`create-next-app` avait « cassé le monorepo ». Vérification faite,
+`pnpm -r list` listait bien les trois paquets : le monorepo fonctionnait. Le
+défaut réel était plus étroit — un **second `pnpm-lock.yaml`** de 137 Ko dans
+`apps/web` et un `pnpm-workspace.yaml` imbriqué. Deux verrous, c'est une
+ambiguïté sur celui qui fait loi. J'ai diagnostiqué avant de corriger, mais
+j'avais annoncé le diagnostic avant de le faire.
+
+Correction appliquée : `ignoredBuiltDependencies` remonté dans le
+`pnpm-workspace.yaml` racine, fichiers imbriqués **sauvegardés hors du dépôt**
+puis supprimés, `node_modules` local supprimé, réinstallation depuis la racine.
+
+**Défaut trouvé en vérifiant, pas signalé par un outil.** `pnpm typecheck`
+affichait `Scope: 2 of 3 workspace projects` : `apps/web` n'avait pas de script
+`typecheck`, il était donc **sauté en silence** par la commande racine.
+`--if-present` ne se plaint pas d'une absence. Script ajouté ; les deux paquets
+sont désormais couverts.
+
+**Vérifié — sorties réelles lues.**
+
+- `pnpm install` depuis la racine : exit 0, 11 min 2 s.
+- Espace de travail : 3 membres, **un seul** `pnpm-lock.yaml`, **un seul**
+  `pnpm-workspace.yaml` (recherche `find` hors `node_modules`).
+- `pnpm typecheck` : exit 0, `packages/ui-tokens` et `apps/web` tous deux
+  exécutés.
+- `check:contrast` : 7 règles, exit 0.
+- `pnpm --filter web build` : exit 0. Compilé en 29,8 s avec Turbopack,
+  TypeScript en 4,7 s, 4 pages statiques générées, routes `/` et `/_not-found`.
+- `git check-ignore` : `.next/`, `apps/web/node_modules` et `node_modules`
+  correctement ignorés.
+- 56 liens internes vérifiés dans tout le dépôt, 0 cassé.
+
+**À connaître pour la suite.** `apps/web/AGENTS.md`, généré par Next.js
+lui-même et régénéré à chaque `next dev`, signale que **cette version comporte
+des ruptures d'API** par rapport aux versions antérieures, et pointe ses guides
+dans `node_modules/next/dist/docs/`. À lire avant d'écrire le premier écran,
+sous peine d'écrire du Next.js d'une version qui n'existe plus.
+
+**Divergence non tranchée.** La racine est en TypeScript 7.0.2, `apps/web` en
+5.9.3 — la version avec laquelle Next.js 16.3.1 est livré et validé. Deux
+compilateurs dans un dépôt est une odeur. Non résolu aujourd'hui : le build
+passe, et aligner sans tester ferait courir un risque pour un gain esthétique.
+À trancher par un essai réel.
+
+**Non commité, signalé.** Deux fichiers sont apparus dans
+`InspirationsMaquettes/` pendant la session — `chatbot.png` et `chatbot1.png`.
+Ils ne font pas partie du périmètre demandé et n'ont pas été ouverts.
+
+---
+
 ## 2026-08-07 — Arbitrages rendus, socle du monorepo posé
 
 **Mandat.** Le fondateur délègue l'arbitrage de D-01, D-03 et D-06, lève la

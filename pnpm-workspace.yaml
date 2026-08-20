@@ -1,3 +1,10 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+
+# Remonté depuis apps/web/pnpm-workspace.yaml, que create-next-app avait créé.
+# Un espace de travail imbriqué dans un autre est une source d'ambiguïté :
+# le réglage vit à la racine, il n'y a qu'un seul espace de travail.
+ignoredBuiltDependencies:
+  - sharp
+  - unrs-resolver
