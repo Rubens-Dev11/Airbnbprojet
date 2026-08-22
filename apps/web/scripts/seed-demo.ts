@@ -29,6 +29,41 @@ if (!url || !serviceKey) {
 const db = createClient(url, serviceKey, { auth: { persistSession: false } });
 
 const purger = process.argv.includes('--purge');
+const publier = process.argv.includes('--publish');
+
+/**
+ * Publie les annonces de démonstration restées sans photo.
+ *
+ * ⚠ Cela CONTOURNE délibérément la règle « pas de photo, pas de publication »
+ * appliquée par `toggleListingPublication`. Deux raisons de le faire ici, et
+ * uniquement ici :
+ *
+ *   1. Ça ne touche QUE les lignes `is_demo = true`. La règle produit reste
+ *      entière : une vraie annonce sans photo ne se publiera jamais.
+ *   2. C'est un script d'administration lancé à la main, pas un chemin
+ *      applicatif. Personne ne peut l'atteindre depuis l'interface.
+ *
+ * Motif : mesurer l'agent (Phase 1 du PRD) demande du volume publié. Attendre
+ * 18 jeux de photos pour savoir si le produit tient serait payer une règle
+ * d'ergonomie au prix d'une décision stratégique.
+ */
+async function publierDemo(): Promise<void> {
+  const { data, error } = await db
+    .from('listings')
+    .update({ is_active: true })
+    .eq('is_demo', true)
+    .eq('is_active', false)
+    .select('title');
+
+  if (error) {
+    console.error('ECHEC :', error.message);
+    process.exit(1);
+  }
+
+  console.log(`→ ${data?.length ?? 0} annonce(s) de demonstration publiee(s) SANS PHOTO`);
+  data?.forEach((l) => console.log(`  ${l.title}`));
+  console.log('\nElles restent marquees is_demo : le bandeau d avertissement reste affiche.');
+}
 
 // --- Propriétaires de démonstration -----------------------------------------
 const PROPRIETAIRES = [
@@ -340,4 +375,6 @@ async function semer(): Promise<void> {
   console.log('Toutes sont EN BROUILLON : ajoutez les photos puis publiez depuis /admin/listings.');
 }
 
-await (purger ? purge() : semer());
+if (purger) await purge();
+else if (publier) await publierDemo();
+else await semer();

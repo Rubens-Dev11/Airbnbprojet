@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint",
     "agent:check": "node --experimental-strip-types --env-file=.env.local scripts/check-agent-tools.ts",
-    "seed:demo": "node --experimental-strip-types --env-file=.env.local scripts/seed-demo.ts"
+    "seed:demo": "node --experimental-strip-types --env-file=.env.local scripts/seed-demo.ts",
+    "agent:measure": "node --experimental-strip-types --env-file=.env.local scripts/measure-agent.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.41",

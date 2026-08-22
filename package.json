@@ -10,7 +10,8 @@
     "db:types": "bash supabase/gen-types.sh",
     "tokens:css": "node --experimental-strip-types packages/ui-tokens/scripts/emit-css.ts",
     "agent:check": "pnpm --filter web agent:check",
-    "seed:demo": "pnpm --filter web seed:demo"
+    "seed:demo": "pnpm --filter web seed:demo",
+    "agent:measure": "pnpm --filter web agent:measure"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
