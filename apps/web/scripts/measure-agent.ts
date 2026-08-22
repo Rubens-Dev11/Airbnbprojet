@@ -12,6 +12,11 @@
  * seul donnerait une fausse certitude sur un critère qui décide de la suite du
  * produit.
  */
+// Marque le fichier comme module ES : sans cela, TypeScript refuse le `await`
+// de premier niveau utilisé plus bas. Node l'exécute correctement dans les
+// deux cas — c'est le typecheck qui l'exige, et il a raison de l'exiger.
+export {};
+
 const BASE = process.env.AGENT_BASE_URL ?? 'http://localhost:3000';
 
 type Cas = {
