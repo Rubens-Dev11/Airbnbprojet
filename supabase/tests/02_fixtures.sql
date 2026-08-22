@@ -96,8 +96,18 @@ insert into bookings (id, tenant_id, listing_id, check_in, check_out,
    '00000000-0000-0000-0000-0000000000e1',
    date '2026-10-01', date '2026-10-04', 3, 60000, 18000, 'ACCEPTED');
 
--- Blocage correspondant à la réservation confirmée.
-insert into listing_blocks (listing_id, period, booking_id) values
-  ('00000000-0000-0000-0000-0000000000e1',
-   daterange(date '2026-09-10', date '2026-09-13', '[)'),
-   '00000000-0000-0000-0000-0000000000f1');
+-- Le blocage de la réservation confirmée n'est PLUS inséré ici : depuis la
+-- migration 0008, un déclencheur le crée automatiquement. L'insérer à la main
+-- provoquait un doublon — ce qui, au passage, prouve que le déclencheur
+-- fonctionne.
+do $$
+declare n int;
+begin
+  select count(*) into n
+  from listing_blocks
+  where booking_id = '00000000-0000-0000-0000-0000000000f1';
+
+  if n <> 1 then
+    raise exception 'le declencheur 0008 n''a pas bloque les dates de la reservation confirmee (% blocage(s))', n;
+  end if;
+end $$;

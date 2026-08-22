@@ -302,13 +302,20 @@ function composerAvertissement(
   const liste =
     noms.length === 1 ? noms[0] : `${noms.slice(0, -1).join(', ')} et ${noms.at(-1)}`;
 
-  let phrase = `Aucun logement ne correspond exactement à la demande. J'ai élargi ${liste} pour proposer ce qui existe.`;
+  // Cette phrase est LUE PAR UN UTILISATEUR, pas par une machine.
+  //
+  // La première version disait « chaque logement indique dans son champ
+  // "missing" … ». Le modèle, à qui on demande de la répéter telle quelle,
+  // l'a récitée mot pour mot — nom de champ compris. Constaté le 22 août 2026.
+  // Aucun vocabulaire technique ici : ce qui concerne le modèle va dans la
+  // description de l'outil, pas dans une phrase destinée au public.
+  let phrase = `Aucun logement ne correspond exactement à cette demande. J'ai élargi ${liste} pour montrer ce qui existe.`;
 
   if (relaxed.includes('maxPrice') && criteria.maxPrice) {
-    phrase += ` Les logements ci-dessous coûtent PLUS de ${criteria.maxPrice.toLocaleString('fr-FR')} FCFA la nuit.`;
+    phrase += ` Les logements ci-dessous dépassent ${criteria.maxPrice.toLocaleString('fr-FR')} FCFA la nuit.`;
   }
   if (relaxed.includes('amenities')) {
-    phrase += " Chaque logement indique, dans son champ « missing », les équipements demandés qu'il N'A PAS.";
+    phrase += " Ils n'ont pas tous les équipements demandés — c'est précisé pour chacun.";
   }
 
   return phrase;
