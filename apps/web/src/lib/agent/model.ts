@@ -48,9 +48,35 @@ export function resolveModel(): { model: LanguageModel; provider: AgentProvider;
     // Mistral Large : solide en français et gère les appels d'outils, ce qui
     // est indispensable ici — un modèle sans outils ne peut pas chercher dans
     // le catalogue, il ne peut qu'inventer.
-    const name = process.env.AGENT_MODEL ?? 'mistralai/mistral-large-2-instruct';
+    // ⚠ DEUX PIÈGES, tous deux constatés à l'exécution le 22 août 2026.
+    //
+    // 1. La liste publique de /v1/models n'est PAS la liste des modèles
+    //    accessibles à un compte : `mistral-large-2-instruct` y figure et
+    //    renvoie « Not found for account ».
+    //
+    // 2. Surtout : `mistralai/mistral-nemotron` N'ENVOIE JAMAIS de
+    //    `finish_reason` en streaming. Sans lui, le SDK ne peut pas savoir que
+    //    le tour s'est terminé par un appel d'outil : il classe en « other »,
+    //    la boucle s'arrête, l'outil n'est jamais exécuté et la réponse est
+    //    VIDE. Sans streaming le même modèle renvoie bien « tool_calls » —
+    //    c'est donc un défaut de son implémentation du flux.
+    //
+    // Sondage des 5 modèles accessibles, en streaming avec outils :
+    //   meta/llama-3.3-70b-instruct                tool_calls  ✓
+    //   meta/llama-3.1-70b-instruct                tool_calls  ✓
+    //   meta/llama-3.1-8b-instruct                 tool_calls  ✓
+    //   mistralai/mistral-nemotron                 AUCUN       ✗
+    //   nvidia/llama-3.3-nemotron-super-49b-v1.5   length, n'appelle pas l'outil ✗
+    //
+    // Retenu : le 70B, le plus grand de ceux qui fonctionnent.
+    const name = process.env.AGENT_MODEL ?? 'meta/llama-3.3-70b-instruct';
+    // `.chat()` et NON l'appel direct : depuis @ai-sdk/openai v4, l'appel par
+    // défaut vise l'API « Responses » d'OpenAI (`/v1/responses`), que NVIDIA
+    // n'implémente pas — elle répond 404. `.chat()` vise
+    // `/v1/chat/completions`, le seul point d'entrée compatible.
+    // Constaté à l'exécution le 22 août 2026, pas supposé.
     return {
-      model: createOpenAI({ apiKey, baseURL: NVIDIA_BASE_URL })(name),
+      model: createOpenAI({ apiKey, baseURL: NVIDIA_BASE_URL }).chat(name),
       provider,
       name,
     };

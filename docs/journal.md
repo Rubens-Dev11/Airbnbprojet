@@ -8,6 +8,113 @@ Format : entrée la plus récente en haut.
 
 ---
 
+## 2026-08-22 — L'agent parle. Trois pièges NVIDIA, et une latence hors cible
+
+**L'agent a tenu sa première conversation réelle.** Demande en français :
+« Je cherche un studio à Bonamoussadi, moins de 35 000 la nuit ». Critères
+extraits correctement, outil appelé, vraie annonce de la base, réponse juste —
+30 000 FCFA, équipements et repère réels, proposition de suite.
+
+Phase 1 du PRD est techniquement debout.
+
+### Décision : NVIDIA NIM, acceptée avec réserves
+
+Le fondateur fournit une clé NVIDIA gratuite, OpenAI et Anthropic étant
+payantes. Accepté : le CDC n'a jamais contenu de ligne de budget (CDC-05), et
+bloquer la Phase 1 sur une facture non chiffrée serait absurde.
+
+**Deux réserves posées, l'une d'elles méthodologique et sérieuse.** NVIDIA
+marque lui-même la clé « for API testing use only » — pas pour la production.
+Et surtout : si l'on mesure S3 (les 80 % de pertinence, le go/no-go du
+produit) sur un modèle qu'on n'expédiera pas, **la mesure ne transfère pas**.
+On aurait validé une hypothèse sur autre chose que le produit. La mesure
+décisive devra tourner sur le modèle de production.
+
+**Incident de sécurité.** La clé a été collée en clair dans la conversation.
+Signalé immédiatement, révocation demandée, nouvelle clé saisie par le
+fondateur lui-même dans `.env.local`. Je ne l'ai ni lue ni recopiée. Vérifié :
+`git log -S"nvapi-"` sur tout l'historique ne renvoie rien.
+
+### Trois pièges, tous constatés à l'exécution
+
+**1. `@ai-sdk/openai` v4 vise l'API « Responses » par défaut.** L'appel direct
+`createOpenAI(...)(nom)` tape `/v1/responses`, que NVIDIA n'implémente pas →
+404. Il faut `.chat(nom)`, qui vise `/v1/chat/completions`.
+
+**2. La liste publique des modèles n'est pas la liste accessible.**
+`mistralai/mistral-large-2-instruct` figure dans `/v1/models` et renvoie
+« Not found for account ». Sondage des candidats : 5 modèles utilisables sur ce
+compte.
+
+**3. Le plus coûteux : `mistralai/mistral-nemotron` n'envoie JAMAIS de
+`finish_reason` en streaming.** Sans lui, le SDK ne peut pas savoir que le tour
+s'est terminé par un appel d'outil : il classe en `other`, la boucle s'arrête,
+**l'outil n'est jamais exécuté et la réponse est vide**. Le même modèle, sans
+streaming, renvoie bien `tool_calls` — c'est donc son implémentation du flux
+qui est en cause.
+
+Diagnostiqué en comparant la réponse brute avec et sans streaming, puis en
+sondant les cinq modèles :
+
+| Modèle | `finish_reason` en streaming |
+|---|---|
+| `meta/llama-3.3-70b-instruct` | `tool_calls` ✓ |
+| `meta/llama-3.1-70b-instruct` | `tool_calls` ✓ |
+| `meta/llama-3.1-8b-instruct` | `tool_calls` ✓ |
+| `mistralai/mistral-nemotron` | **aucun** ✗ |
+| `nvidia/llama-3.3-nemotron-super-49b-v1.5` | `length`, n'appelle pas l'outil ✗ |
+
+Retenu : `meta/llama-3.3-70b-instruct`. J'avais choisi Mistral pour sa force en
+français — un raisonnement sur le papier, invalidé par la mesure.
+
+### La latence est très au-dessus de la cible, et ce n'est pas notre code
+
+Deux essais, temps cumulés depuis la requête :
+
+| Étape | Essai 1 | Essai 2 |
+|---|---|---|
+| Outil demandé | 7,0 s | 13,1 s |
+| **Base répondue** | **7,1 s** | **13,1 s** |
+| **Premier mot affiché** | **11,0 s** | **19,6 s** |
+| Réponse complète | 13,0 s | 20,4 s |
+
+**La base répond en 0,1 s** : ni le schéma, ni les politiques RLS, ni le réseau
+vers Supabase n'y sont pour quoi que ce soit. Tout le temps est dans
+l'inférence du palier gratuit.
+
+Cible PRD S5 : premier mot en moins de 3 s. On est entre **3,7× et 6,5× au
+dessus**.
+
+**Conséquence à écrire noir sur blanc : S5 ne peut pas être validé sur ce
+palier.** S3 (pertinence) reste mesurable ici ; S5 (latence) devra être
+remesuré sur l'infrastructure de production. Les deux critères ne peuvent pas
+être établis sur le même environnement.
+
+### Disposition retenue
+
+Le fondateur a tranché : l'agent reste central. Les maquettes fournies —
+l'assistance SFR — montrent un patron de support secondaire ancré en bas à
+droite ; en reprendre la place aurait contredit ADR-005. On en garde la forme,
+pas la place : l'assistant est au centre de l'accueil, avant le catalogue.
+
+Les résultats sont rendus en cartes **depuis la sortie de l'outil**, pas
+recopiés du texte du modèle : un modèle qui réécrit « 16 500 FCFA » peut le
+déformer.
+
+### Vérifié
+
+- Conversation complète exercée par requête réelle, sortie lue intégralement.
+- Journalisation effective : `chat_messages` contient 6 messages pour
+  `llama-3.3-70b`, 2 pour `mistral-nemotron`. La mesure S3 est donc alimentée.
+- Typecheck exit 0. `git log -S"nvapi-"` : aucune clé dans l'historique.
+
+### Non vérifié
+
+L'interface de conversation n'a pas été exercée dans un navigateur — seulement
+la route. Le rendu des bulles, du streaming et des cartes reste à voir.
+
+---
+
 ## 2026-08-07 — Le parcours complet fonctionne, et les photos sont enfin optimisées
 
 **Constat du fondateur.** Annonce créée, deux photos téléversées, publiée,
