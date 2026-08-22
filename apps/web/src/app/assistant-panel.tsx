@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { formatFcfa } from '@app/shared';
@@ -219,6 +220,23 @@ function ResultatsRecherche({ sortie }: { sortie: unknown }) {
             <p className="mt-1 font-medium text-brand-700">
               {formatFcfa(r.pricePerNight)} <span className="text-gray-500">/ nuit</span>
             </p>
+            {/* Chemin vers la réservation rendu par NOUS, pas par le modèle.
+                Mesuré le 22 août 2026 : llama-3.3-70b n'appelle pas
+                systématiquement start_booking même quand la personne dit
+                vouloir réserver — il redemande confirmation. Faire dépendre
+                le parcours critique de l'obéissance d'un modèle serait une
+                faute : ces liens marchent toujours. */}
+            <div className="mt-3 flex gap-3 text-sm">
+              <Link href={`/logement/${r.id}`} className="text-brand-700 hover:underline">
+                Voir la fiche
+              </Link>
+              <Link
+                href={`/reserver/${r.id}`}
+                className="rounded bg-brand-700 px-3 py-1.5 font-medium text-white hover:bg-brand-600"
+              >
+                Réserver
+              </Link>
+            </div>
           </article>
         ))
       )}

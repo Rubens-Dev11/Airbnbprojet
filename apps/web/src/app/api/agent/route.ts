@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { searchListings, getListing, filterAvailable } from '@app/shared';
 import { createClient } from '@/lib/supabase/server.ts';
 import { createServiceClient } from '@/lib/supabase/service.ts';
-import { resolveModel, SYSTEM_PROMPT } from '@/lib/agent/model.ts';
+import { resolveModel, systemPrompt } from '@/lib/agent/model.ts';
 
 /**
  * Agent conversationnel — Phase 1 du PRD.
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
 
   const result = streamText({
     model,
-    system: SYSTEM_PROMPT,
+    system: systemPrompt(),
     messages: modelMessages,
     // Plusieurs allers-retours permettent d'enchaîner recherche puis réponse.
     // Une borne existe pour éviter une boucle qui consommerait sans fin — le
@@ -80,6 +80,51 @@ export async function POST(request: Request) {
         description: 'Détail d’un logement précis, à partir de son identifiant.',
         inputSchema: z.object({ id: z.string().describe('Identifiant du logement.') }),
         execute: async ({ id }) => (await getListing(db, id)) ?? { error: 'Logement introuvable.' },
+      }),
+
+      start_booking: tool({
+        description:
+          "Prépare une demande de réservation et renvoie le lien de la page où elle se termine. À appeler dès que la personne veut réserver. NE JAMAIS annoncer de montant d'avance : il s'affiche sur cette page.",
+        inputSchema: z.object({
+          id: z.string().describe('Identifiant du logement.'),
+          checkIn: z.string().describe('Date d’arrivée, AAAA-MM-JJ.'),
+          checkOut: z.string().describe('Date de départ, AAAA-MM-JJ.'),
+        }),
+        execute: async ({ id, checkIn, checkOut }) => {
+          const listing = await getListing(db, id);
+          if (!listing) return { error: "Ce logement n'existe plus ou n'est plus publié." };
+
+          const libres = await filterAvailable(db, [id], checkIn, checkOut);
+          if (!libres.has(id)) {
+            return {
+              available: false,
+              message: 'Ce logement est déjà pris sur ces dates. Proposez d’autres dates.',
+            };
+          }
+
+          const nuits = Math.round(
+            (Date.parse(checkOut) - Date.parse(checkIn)) / 86_400_000,
+          );
+          if (!Number.isFinite(nuits) || nuits < 1) {
+            return { error: 'Les dates ne sont pas valides : le départ doit suivre l’arrivée.' };
+          }
+
+          // Le total est calculé ICI, à partir du prix réel en base — jamais
+          // laissé au modèle. Le montant de l'avance n'est volontairement PAS
+          // renvoyé : son taux n'est pas arrêté (ADR-007), et un modèle à qui
+          // on ne donne pas un chiffre finit par en inventer un.
+          return {
+            available: true,
+            listingTitle: listing.title,
+            neighborhood: listing.neighborhood,
+            nights: nuits,
+            pricePerNight: listing.pricePerNight,
+            totalAmount: nuits * listing.pricePerNight,
+            url: `/reserver/${id}?arrivee=${checkIn}&depart=${checkOut}`,
+            instruction:
+              'Donne ce lien à la personne. Le montant de l’avance et les conditions s’affichent sur cette page.',
+          };
+        },
       }),
 
       check_availability: tool({
