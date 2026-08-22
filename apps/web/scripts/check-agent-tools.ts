@@ -104,6 +104,31 @@ check(
   unknownQuartier.unknownNeighborhood ?? 'non signale',
 );
 
+console.log('\n--- Vocabulaire rendu au modele ---');
+
+// Régression du 22 août 2026 : l'outil renvoyait les codes bruts (AC,
+// WATER_HEATER) et le modèle les traduisait lui-même — il a inventé un
+// « réfrigérateur » et un « générateur » absents, tout en OUBLIANT la
+// climatisation. Les libellés doivent arriver traduits, sinon le modèle
+// devine.
+const codesBruts = ['AC', 'WIFI', 'KITCHEN', 'WATER_HEATER', 'TV', 'PARKING', 'GENERATOR'];
+const fuites = all.results.flatMap((r) => r.amenities.filter((a) => codesBruts.includes(a)));
+check(
+  'les equipements sont en francais, pas des codes bruts',
+  fuites.length === 0,
+  fuites.length ? `codes non traduits : ${[...new Set(fuites)].join(', ')}` : '',
+);
+
+const typesBruts = ['ROOM', 'STUDIO', 'APARTMENT', 'VILLA'];
+const fuiteType = all.results.filter((r) => typesBruts.includes(r.listingType));
+check(
+  'le type de logement est en francais',
+  fuiteType.length === 0,
+  fuiteType.length ? `non traduit : ${fuiteType[0]!.listingType}` : '',
+);
+
+console.log(`  echantillon : ${JSON.stringify(sample.amenities)} — type « ${sample.listingType} »`);
+
 console.log('\n--- Disponibilite ---');
 
 const free = await searchListings(db, { checkIn: '2027-01-10', checkOut: '2027-01-13' });

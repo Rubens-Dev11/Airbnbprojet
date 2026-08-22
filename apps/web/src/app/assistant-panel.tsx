@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 import { formatFcfa } from '@app/shared';
 
 /**
@@ -26,7 +27,15 @@ const AMORCES = [
 
 export function AssistantPanel() {
   const [input, setInput] = useState('');
-  const { messages, sendMessage, status, error } = useChat();
+
+  // `useChat` poste par DÉFAUT vers /api/chat. Notre route est /api/agent :
+  // sans ce transport, chaque envoi tombait sur le 404 de Next, dont la page
+  // HTML complète était affichée comme message d'erreur. Constaté à l'écran
+  // le 22 août 2026 — invisible au typecheck et au build, puisque les deux
+  // chemins sont valides.
+  const { messages, sendMessage, status, error } = useChat({
+    transport: new DefaultChatTransport({ api: '/api/agent' }),
+  });
 
   const busy = status === 'submitted' || status === 'streaming';
 
@@ -120,11 +129,7 @@ export function AssistantPanel() {
           <p className="text-sm text-gray-500">L&apos;assistant réfléchit…</p>
         )}
 
-        {error && (
-          <p role="alert" className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-900">
-            {error.message}
-          </p>
-        )}
+        {error && <MessageErreur brut={error.message} />}
       </div>
 
       <form
@@ -149,6 +154,36 @@ export function AssistantPanel() {
         </button>
       </form>
     </section>
+  );
+}
+
+/**
+ * Affiche une erreur de façon lisible.
+ *
+ * Le message brut peut être une page HTML entière — c'est arrivé le
+ * 22 août 2026, une page 404 de Next déversée dans la conversation sur
+ * plusieurs écrans de haut. Un message d'erreur illisible ne vaut pas mieux
+ * qu'une erreur silencieuse : on montre une phrase compréhensible, et le
+ * détail technique reste accessible dans un bloc repliable.
+ */
+function MessageErreur({ brut }: { brut: string }) {
+  const estHtml = /<\/?[a-z][\s\S]*>/i.test(brut);
+  const resume = estHtml
+    ? "L'assistant est injoignable. Le serveur a renvoyé une page au lieu d'une réponse."
+    : brut.slice(0, 300);
+
+  return (
+    <div role="alert" className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-900">
+      <p>{resume}</p>
+      {estHtml && (
+        <details className="mt-2">
+          <summary className="cursor-pointer text-xs text-red-800">Détail technique</summary>
+          <pre className="mt-1 max-h-32 overflow-auto text-xs whitespace-pre-wrap">
+            {brut.slice(0, 500)}
+          </pre>
+        </details>
+      )}
+    </div>
   );
 }
 

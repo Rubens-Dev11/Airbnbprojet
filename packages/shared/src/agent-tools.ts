@@ -20,8 +20,18 @@ export type ListingHit = {
   title: string;
   neighborhood: string;
   pricePerNight: number;
+  /** Libellé français prêt à énoncer — voir `amenities`. */
   listingType: string;
   maxGuests: number;
+  /**
+   * Libellés FRANÇAIS, pas les codes.
+   *
+   * Le 22 août 2026, l'outil renvoyait les codes bruts (`AC`, `WATER_HEATER`)
+   * et le modèle les traduisait lui-même : il a inventé un « réfrigérateur »
+   * et un « générateur » absents, tout en OUBLIANT la climatisation qui, elle,
+   * existait. On ne demande pas à un modèle de traduire un vocabulaire
+   * contrôlé — on le lui donne déjà traduit. Il n'a plus rien à deviner.
+   */
   amenities: string[];
   landmark: string | null;
 };
@@ -231,15 +241,38 @@ export async function getListing(db: Db, id: string): Promise<ListingHit | null>
   return data ? toHit(data) : null;
 }
 
+/** Vocabulaire contrôlé, traduit ici et nulle part ailleurs. */
+const LIBELLES_EQUIPEMENTS: Record<string, string> = {
+  WIFI: 'WiFi',
+  AC: 'climatisation',
+  PARKING: 'parking',
+  KITCHEN: 'cuisine équipée',
+  WATER_HEATER: 'chauffe-eau',
+  TV: 'télévision',
+  WASHING_MACHINE: 'machine à laver',
+  GENERATOR: 'groupe électrogène',
+  SECURITY: 'gardiennage',
+};
+
+const LIBELLES_TYPES: Record<string, string> = {
+  ROOM: 'chambre',
+  STUDIO: 'studio',
+  APARTMENT: 'appartement',
+  VILLA: 'villa',
+};
+
 function toHit(row: any): ListingHit {
+  const codes: string[] = row.amenities ?? [];
   return {
     id: row.id,
     title: row.title,
     neighborhood: row.neighborhoods?.name ?? '—',
     pricePerNight: row.price_per_night,
-    listingType: row.listing_type,
+    listingType: LIBELLES_TYPES[row.listing_type] ?? row.listing_type,
     maxGuests: row.max_guests,
-    amenities: row.amenities ?? [],
+    // Un code inconnu est conservé tel quel plutôt que masqué : mieux vaut un
+    // libellé bizarre qu'un équipement qui disparaît silencieusement.
+    amenities: codes.map((c) => LIBELLES_EQUIPEMENTS[c] ?? c),
     landmark: row.landmark ?? null,
   };
 }
