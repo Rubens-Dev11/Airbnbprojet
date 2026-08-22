@@ -32,6 +32,28 @@ export async function uploadListingPhotos(
 
   const supabase = await createClient();
 
+  // L'annonce existe-t-elle encore ? Contrôle AVANT le premier téléversement.
+  //
+  // Sans lui, on dépose un fichier puis on le retire quand la clé étrangère
+  // échoue : le résultat est correct mais on a payé un aller-retour réseau
+  // pour rien — et depuis le Cameroun, c'est ~250 ms mesurés par requête
+  // (ADR-004), multipliés par le nombre de fichiers. Échouer tôt coûte moins
+  // cher qu'échouer proprement.
+  const { data: listing } = await supabase
+    .from('listings')
+    .select('id')
+    .eq('id', listingId)
+    .maybeSingle();
+
+  if (!listing) {
+    return {
+      ok: false,
+      error:
+        "Cette annonce n'existe plus — elle a été supprimée depuis l'ouverture de cette page. " +
+        'Aucun fichier n’a été téléversé. Revenez à la liste et créez une nouvelle annonce.',
+    };
+  }
+
   // Position de départ : on ajoute à la suite, sans réordonner l'existant.
   const { data: existing } = await supabase
     .from('listing_images')
@@ -80,7 +102,7 @@ export async function uploadListingPhotos(
     // laisser un objet orphelin que plus rien ne désigne.
     if (rowError) {
       await supabase.storage.from(BUCKET).remove([path]);
-      return { ok: false, error: `Enregistrement refusé : ${rowError.message}` };
+      return { ok: false, error: explainRowError(rowError) };
     }
 
     position += 1;
@@ -90,6 +112,33 @@ export async function uploadListingPhotos(
   revalidatePath(`/admin/listings/${listingId}`);
   revalidatePath('/admin/listings');
   return { ok: true, added };
+}
+
+/**
+ * Traduit une erreur de base en message compréhensible.
+ *
+ * Le 7 août 2026, un téléversement a renvoyé à l'écran :
+ *   « insert or update on table "listing_images" violates foreign key
+ *     constraint "listing_images_listing_id_fkey" »
+ *
+ * C'est exact, et c'est inutilisable. La cause réelle — l'annonce avait été
+ * supprimée pendant que la page restait ouverte — n'apparaissait nulle part,
+ * et rien n'indiquait quoi faire. Un message d'erreur doit nommer la cause et
+ * la suite, pas réciter le nom d'une contrainte.
+ *
+ * On ne masque rien pour autant : le message technique reste en fin de
+ * phrase, pour le diagnostic.
+ */
+function explainRowError(error: { code?: string; message: string }): string {
+  // 23503 = violation de clé étrangère. Ici, une seule est possible :
+  // listing_id ne désigne plus aucune annonce.
+  if (error.code === '23503') {
+    return (
+      "Cette annonce n'existe plus — elle a été supprimée depuis l'ouverture de cette page. " +
+      'La photo n’a pas été conservée. Revenez à la liste et créez une nouvelle annonce.'
+    );
+  }
+  return `Enregistrement refusé : ${error.message}`;
 }
 
 /** Supprime une photo : la ligne ET le fichier. */

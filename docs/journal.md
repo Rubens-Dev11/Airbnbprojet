@@ -8,6 +8,58 @@ Format : entrée la plus récente en haut.
 
 ---
 
+## 2026-08-07 — J'ai supprimé une annonce sous les pieds du fondateur
+
+**Ce qui s'est passé.** Après avoir exercé le parcours de création dans le
+navigateur, j'ai supprimé l'annonce d'essai de la base — au nom de la règle
+« ne jamais laisser de données de démonstration ». Le fondateur avait **la même
+page ouverte**. Son téléversement a échoué sur :
+
+> `insert or update on table "listing_images" violates foreign key constraint
+> "listing_images_listing_id_fkey"`
+
+**Faute de conduite, pas de code.** J'ai modifié un état partagé sans regarder
+ce qui l'utilisait, et sans prévenir. La règle sur les données de démonstration
+reste juste ; c'est le moment et le silence qui étaient mauvais. À retenir :
+avant de supprimer, vérifier qui regarde.
+
+**Vérifié plutôt que supposé** : la base contenait bien **0 annonce**, et l'id
+de l'URL du fondateur n'existait plus.
+
+### Un garde-fou validé par accident
+
+`storage.objects` ne contenait **aucun fichier orphelin**. Le repli écrit dans
+`uploadListingPhotos` — retirer le fichier quand la ligne échoue — a donc
+fonctionné en conditions réelles, sur un cas que je n'aurais pas su provoquer
+volontairement. C'est la seule bonne nouvelle de l'incident.
+
+### Deux corrections
+
+**1. Le message était exact et inutilisable.** Un nom de contrainte n'aide
+personne : il ne dit ni la cause, ni la suite. `explainRowError()` traduit
+désormais le code `23503` en « cette annonce n'existe plus… revenez à la liste
+et créez une nouvelle annonce », en conservant le message technique pour le
+diagnostic.
+
+**2. Échouer tôt plutôt que proprement.** L'existence de l'annonce est
+maintenant contrôlée **avant** le premier téléversement. L'ancien
+comportement — déposer puis retirer — était correct mais payait un aller-retour
+réseau pour rien ; depuis le Cameroun c'est ~250 ms mesurés par requête
+(ADR-004), multipliés par le nombre de fichiers.
+
+### Vérifié
+
+`pnpm typecheck` exit 0 sur les 3 paquets.
+
+### Non vérifié
+
+**Le nouveau garde-fou n'a pas été exercé.** Le déclencher demande une session
+administrateur dans un navigateur ; mon onglet n'en a pas et je ne saisis pas
+de mot de passe. Le chemin est simple et le typecheck passe — ce n'est pas une
+preuve, et c'est dit comme tel.
+
+---
+
 ## 2026-08-07 — Publication et photos : l'écran d'administration devient utilisable
 
 **Déclencheur.** Le fondateur envoie une capture de l'écran d'administration
