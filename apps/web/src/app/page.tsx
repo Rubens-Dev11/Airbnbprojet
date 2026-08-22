@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { formatFcfa } from '@app/shared';
 import { createClient } from '@/lib/supabase/server.ts';
 import { getCurrentProfile } from '@/lib/auth.ts';
@@ -20,10 +21,24 @@ export default async function HomePage() {
     supabase.from('neighborhoods').select('*', { count: 'exact', head: true }).eq('is_active', true),
     supabase
       .from('listings')
-      .select('id, title, price_per_night, landmark, neighborhoods(name)')
+      // Les photos font partie de la carte, pas d'un détail : le CDC §1
+      // identifie « photos inexistantes ou trompeuses » comme le problème
+      // central du marché. Une carte sans image ne se distingue pas d'une
+      // annonce WhatsApp.
+      .select(
+        'id, title, price_per_night, landmark, neighborhoods(name), listing_images(storage_path, position)',
+      )
       .order('created_at', { ascending: false })
       .limit(12),
   ]);
+
+  /** Photo de couverture : celle de position la plus basse. */
+  function coverUrl(images: { storage_path: string; position: number }[] | null): string | null {
+    if (!images || images.length === 0) return null;
+    const cover = [...images].sort((a, b) => a.position - b.position)[0];
+    if (!cover) return null;
+    return supabase.storage.from('listing-photos').getPublicUrl(cover.storage_path).data.publicUrl;
+  }
 
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-10 px-6 py-12">
@@ -64,18 +79,44 @@ export default async function HomePage() {
 
       {listings && listings.length > 0 && (
         <section className="grid gap-4 sm:grid-cols-2">
-          {listings.map((l) => (
-            <article key={l.id} className="rounded border border-gray-300 bg-white p-4">
-              <h2 className="font-medium text-ink-900">{l.title}</h2>
-              <p className="text-sm text-gray-500">
-                {l.neighborhoods?.name}
-                {l.landmark ? ` — ${l.landmark}` : ''}
-              </p>
-              <p className="mt-2 font-medium text-brand-700">
-                {formatFcfa(l.price_per_night)} <span className="text-gray-500">/ nuit</span>
-              </p>
-            </article>
-          ))}
+          {listings.map((l) => {
+            const cover = coverUrl(l.listing_images);
+            return (
+              <article
+                key={l.id}
+                className="overflow-hidden rounded border border-gray-300 bg-white"
+              >
+                <div className="relative aspect-[4/3] bg-gray-100">
+                  {cover ? (
+                    <Image
+                      src={cover}
+                      alt={l.title}
+                      fill
+                      sizes="(max-width: 640px) 100vw, 50vw"
+                      className="object-cover"
+                    />
+                  ) : (
+                    // Ne devrait pas arriver : la publication est refusée sans
+                    // photo. Si ce cas s'affiche, c'est que la règle a été
+                    // contournée — mieux vaut le voir qu'un cadre vide muet.
+                    <span className="absolute inset-0 flex items-center justify-center text-sm text-gray-500">
+                      Aucune photo
+                    </span>
+                  )}
+                </div>
+                <div className="p-4">
+                  <h2 className="font-medium text-ink-900">{l.title}</h2>
+                  <p className="text-sm text-gray-500">
+                    {l.neighborhoods?.name}
+                    {l.landmark ? ` — ${l.landmark}` : ''}
+                  </p>
+                  <p className="mt-2 font-medium text-brand-700">
+                    {formatFcfa(l.price_per_night)} <span className="text-gray-500">/ nuit</span>
+                  </p>
+                </div>
+              </article>
+            );
+          })}
         </section>
       )}
 

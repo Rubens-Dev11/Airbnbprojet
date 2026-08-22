@@ -8,6 +8,62 @@ Format : entrée la plus récente en haut.
 
 ---
 
+## 2026-08-07 — Le parcours complet fonctionne, et les photos sont enfin optimisées
+
+**Constat du fondateur.** Annonce créée, deux photos téléversées, publiée,
+visible sur l'accueil — **le parcours entier fonctionne en conditions
+réelles**. Mais la carte publique n'affichait aucune image.
+
+Cause simple : je n'avais jamais mis les photos dans la requête de la page
+d'accueil. Le champ n'était pas sélectionné, donc rien à afficher. Oubli, pas
+défaut.
+
+### Un détour qui valait la peine
+
+Les vignettes de l'administration utilisent `unoptimized` — acceptable en
+interne. Côté public, non : le CDC §9 vise une connexion 3G et exige des images
+optimisées. Plutôt que de recopier `unoptimized`, `next.config.ts` déclare
+maintenant le domaine Supabase — **déduit de la configuration, jamais écrit en
+dur**, puisqu'il diffère entre le poste et la production.
+
+### Une protection de Next.js 16 que je ne connaissais pas
+
+L'image restait cassée, avec un `400 Bad Request` muet côté navigateur. Le
+journal du serveur, lui, était explicite :
+
+> `hostname resolved to private IP ["127.0.0.1"] … you understand SSRF risk`
+
+Next refuse d'aller chercher une image sur une IP privée : sans cela,
+l'optimiseur devient une sonde vers le réseau interne du serveur. La garde ne
+gêne **que** le développement local ; en production l'hôte Supabase est public.
+
+Levée **uniquement si `NODE_ENV === 'development'`**. L'activer en production
+ouvrirait une faille réelle — le nom du drapeau le dit assez fort.
+
+À retenir : le navigateur affichait un 400 sans explication, le serveur donnait
+la cause et le remède en une ligne. Lire le journal du serveur avant de
+supposer.
+
+### Gain mesuré, pas estimé
+
+| | Type | Poids |
+|---|---|---|
+| Fichier d'origine (Supabase) | JPEG | 28 999 o |
+| Optimisé, navigateur moderne | **AVIF** | **6 807 o** — −76 % |
+| Optimisé, navigateur ancien | JPEG | 19 073 o — −34 % |
+
+**Réserve** : cette photo fait 29 Ko. Sur de vraies photos de logement de 2 à
+4 Mo, le ratio sera différent — à remesurer sur le catalogue réel avant d'en
+tirer une conclusion sur la tenue en 3G.
+
+### Vérifié
+
+- Image affichée à l'écran, contrôlée par capture.
+- Poids et type mesurés par requête directe, avec et sans `Accept: image/avif`.
+- `pnpm check` exit 0 (20 tests de base). `next build` exit 0, 6 routes.
+
+---
+
 ## 2026-08-07 — J'ai supprimé une annonce sous les pieds du fondateur
 
 **Ce qui s'est passé.** Après avoir exercé le parcours de création dans le
