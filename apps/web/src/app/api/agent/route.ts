@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     tools: {
       search_listings: tool({
         description:
-          'Cherche des logements réellement publiés et disponibles. À appeler dès que la demande contient un critère exploitable. Renvoie aussi les critères relâchés faute de résultat — il FAUT les annoncer à l’utilisateur.',
+          'Cherche des logements réellement publiés et disponibles. À appeler dès que la demande contient un critère exploitable, y compris pour une question de superlatif (« la moins chère ») : les résultats arrivent TRIÉS DU MOINS CHER AU PLUS CHER, le premier est donc le moins cher. Si aucun logement ne correspond exactement, la recherche élargit les critères et renvoie un champ « warning » à répéter tel quel, plus un champ « missing » par logement.',
         inputSchema: z.object({
           neighborhood: z
             .string()

@@ -34,6 +34,15 @@ export type ListingHit = {
    */
   amenities: string[];
   landmark: string | null;
+  /**
+   * Équipements DEMANDÉS que ce logement n'a pas, en français.
+   *
+   * Renseigné uniquement quand la recherche a dû relâcher les équipements.
+   * Sans ce champ, le modèle ne peut pas distinguer un logement conforme d'un
+   * logement proposé par défaut — et il tranche en affirmant qu'il est
+   * conforme.
+   */
+  missing?: string[];
 };
 
 export type SearchCriteria = {
@@ -58,6 +67,18 @@ export type SearchOutcome = {
    * une réponse fausse, pas une alternative.
    */
   relaxed: (keyof SearchCriteria)[];
+  /**
+   * Phrase française PRÊTE À DIRE quand des critères ont été relâchés.
+   *
+   * Mesuré le 22 août 2026 : à qui on donne seulement `relaxed: ["amenities"]`,
+   * le modèle répond « plusieurs logements correspondent à vos critères » et
+   * cite des logements sans parking. Il ne déduit pas, il affirme.
+   *
+   * On lui donne donc la phrase toute faite, comme pour les libellés
+   * d'équipements. Même principe, même raison : ce que le modèle ne doit pas
+   * inventer, on le lui écrit.
+   */
+  warning?: string;
   /** Quartier demandé mais introuvable au référentiel. */
   unknownNeighborhood?: string;
 };
@@ -194,10 +215,25 @@ export async function searchListings(
       for (const key of relaxationOrder.slice(0, step)) {
         if (criteria[key] !== undefined) relaxed.push(key);
       }
+
+      const hits = rows.slice(0, limit).map(toHit);
+
+      // Quand les équipements ont été relâchés, on dit pour CHAQUE logement
+      // ce qui lui manque. Un « certains n'ont pas tout » global laisserait
+      // le modèle deviner lequel — et il devinerait mal.
+      if (relaxed.includes('amenities') && criteria.amenities?.length) {
+        const demandes = criteria.amenities.map((c) => LIBELLES_EQUIPEMENTS[c] ?? c);
+        for (const hit of hits) {
+          const absents = demandes.filter((d) => !hit.amenities.includes(d));
+          if (absents.length > 0) hit.missing = absents;
+        }
+      }
+
       return {
-        results: rows.slice(0, limit).map(toHit),
+        results: hits,
         applied,
         relaxed,
+        warning: composerAvertissement(relaxed, criteria),
         unknownNeighborhood,
       };
     }
@@ -239,6 +275,43 @@ export async function getListing(db: Db, id: string): Promise<ListingHit | null>
     .maybeSingle();
 
   return data ? toHit(data) : null;
+}
+
+/** Nom français de chaque critère, pour l'avertissement. */
+const LIBELLES_CRITERES: Record<string, string> = {
+  maxPrice: 'le budget maximum',
+  listingType: 'le type de logement',
+  guests: 'le nombre de personnes',
+  neighborhood: 'le quartier',
+  amenities: 'les équipements demandés',
+};
+
+/**
+ * Rédige l'avertissement que l'agent doit répéter tel quel.
+ *
+ * Écrit ici et pas dans la consigne système : une consigne se contourne, une
+ * phrase fournie se recopie.
+ */
+function composerAvertissement(
+  relaxed: (keyof SearchCriteria)[],
+  criteria: SearchCriteria,
+): string | undefined {
+  if (relaxed.length === 0) return undefined;
+
+  const noms = relaxed.map((r) => LIBELLES_CRITERES[r] ?? String(r));
+  const liste =
+    noms.length === 1 ? noms[0] : `${noms.slice(0, -1).join(', ')} et ${noms.at(-1)}`;
+
+  let phrase = `Aucun logement ne correspond exactement à la demande. J'ai élargi ${liste} pour proposer ce qui existe.`;
+
+  if (relaxed.includes('maxPrice') && criteria.maxPrice) {
+    phrase += ` Les logements ci-dessous coûtent PLUS de ${criteria.maxPrice.toLocaleString('fr-FR')} FCFA la nuit.`;
+  }
+  if (relaxed.includes('amenities')) {
+    phrase += " Chaque logement indique, dans son champ « missing », les équipements demandés qu'il N'A PAS.";
+  }
+
+  return phrase;
 }
 
 /** Vocabulaire contrôlé, traduit ici et nulle part ailleurs. */

@@ -191,8 +191,14 @@ function MessageErreur({ brut }: { brut: string }) {
 /** Rend les logements renvoyés par l'outil, sans passer par le modèle. */
 function ResultatsRecherche({ sortie }: { sortie: unknown }) {
   const o = sortie as {
-    results?: { id: string; title: string; neighborhood: string; pricePerNight: number }[];
-    relaxed?: string[];
+    results?: {
+      id: string;
+      title: string;
+      neighborhood: string;
+      pricePerNight: number;
+      missing?: string[];
+    }[];
+    warning?: string;
     unknownNeighborhood?: string;
   };
 
@@ -205,9 +211,11 @@ function ResultatsRecherche({ sortie }: { sortie: unknown }) {
           Quartier « {o.unknownNeighborhood} » inconnu de notre référentiel.
         </p>
       )}
-      {o.relaxed && o.relaxed.length > 0 && (
-        <p className="text-sm text-gray-500">
-          Critères élargis pour trouver quelque chose&nbsp;: {o.relaxed.join(', ')}.
+      {/* L'avertissement vient de l'outil, pas du modèle : il est donc affiché
+          même si le modèle décide de l'ignorer dans sa prose. */}
+      {o.warning && (
+        <p className="rounded border border-accent-500 bg-white px-3 py-2 text-sm text-accent-500">
+          {o.warning}
         </p>
       )}
       {o.results.length === 0 ? (
@@ -220,6 +228,11 @@ function ResultatsRecherche({ sortie }: { sortie: unknown }) {
             <p className="mt-1 font-medium text-brand-700">
               {formatFcfa(r.pricePerNight)} <span className="text-gray-500">/ nuit</span>
             </p>
+            {r.missing && r.missing.length > 0 && (
+              <p className="mt-1 text-sm text-accent-500">
+                N&apos;a pas&nbsp;: {r.missing.join(', ')}
+              </p>
+            )}
             {/* Chemin vers la réservation rendu par NOUS, pas par le modèle.
                 Mesuré le 22 août 2026 : llama-3.3-70b n'appelle pas
                 systématiquement start_booking même quand la personne dit
