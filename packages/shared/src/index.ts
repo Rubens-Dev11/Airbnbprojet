@@ -11,6 +11,15 @@
  */
 export type { Database, Json } from './database.types.ts';
 
+/** Outils de l'agent conversationnel — testables sans modèle de langage. */
+export {
+  resolveNeighborhood,
+  searchListings,
+  filterAvailable,
+  getListing,
+} from './agent-tools.ts';
+export type { ListingHit, SearchCriteria, SearchOutcome } from './agent-tools.ts';
+
 import type { Database } from './database.types.ts';
 
 type Tables = Database['public']['Tables'];

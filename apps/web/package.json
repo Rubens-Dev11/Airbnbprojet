@@ -7,16 +7,21 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint"
+    "lint": "eslint",
+    "agent:check": "node --experimental-strip-types --env-file=.env.local scripts/check-agent-tools.ts"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.41",
+    "@ai-sdk/openai": "^4.0.46",
+    "@app/shared": "workspace:*",
+    "@app/ui-tokens": "workspace:*",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.3",
+    "ai": "^7.0.77",
     "next": "16.3.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "@app/shared": "workspace:*",
-    "@app/ui-tokens": "workspace:*"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

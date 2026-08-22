@@ -8,7 +8,8 @@
     "db:test": "bash supabase/tests/run.sh",
     "check": "pnpm typecheck && pnpm --filter @app/ui-tokens check:contrast && pnpm db:test",
     "db:types": "bash supabase/gen-types.sh",
-    "tokens:css": "node --experimental-strip-types packages/ui-tokens/scripts/emit-css.ts"
+    "tokens:css": "node --experimental-strip-types packages/ui-tokens/scripts/emit-css.ts",
+    "agent:check": "pnpm --filter web agent:check"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
