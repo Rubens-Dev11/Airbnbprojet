@@ -1,0 +1,125 @@
+
+> plateforme-douala-monorepo@ agent:measure C:\Users\BSE\Desktop\Airbnbprojet
+> pnpm --filter web agent:measure
+
+
+> web@0.1.0 agent:measure C:\Users\BSE\Desktop\Airbnbprojet\apps\web
+> node --experimental-strip-types --env-file=.env.local scripts/measure-agent.ts
+
+(node:17068) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/BSE/Desktop/Airbnbprojet/apps/web/scripts/measure-agent.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\BSE\Desktop\Airbnbprojet\apps\web\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Mesure de l'agent — 20 requêtes contre http://localhost:3000
+
+─── 01. « Je cherche une chambre à Akwa »
+    attendu : aucune chambre à Akwa au catalogue — doit le dire, peut proposer un autre quartier ou un studio
+    outils : search_listings · résultats : 2 · 1er mot : 54.9s
+    → Nous avons trouvé des logements à Akwa, mais malheureusement, ils ne sont pas des chambres. Nous avons trouvé un studio pour 2 personnes à 28 000 FCFA la nuit, et un appartement pour 4 personnes à 48 000 FCFA la nuit. Ces logements disposent de la climatisatio
+
+─── 02. « Un studio à Akwa »
+    attendu : le studio à 28 000
+    ECHEC TECHNIQUE : TimeoutError : The operation was aborted due to timeout
+
+─── 03. « studio akwa moins de 30000 »
+    attendu : le studio à 28 000, sans élargissement
+    outils : search_listings · résultats : 1 · 1er mot : 73.7s
+    → Il y a un studio meublé à Akwa pour 28 000 FCFA la nuit. Il dispose de la climatisation, du WiFi, d'une cuisine équipée, d'une télévision et d'un chauffe-eau. Il est situé à 5 minutes de la rue Joss. Voulez-vous réserver ou affiner vos critères ?
+
+─── 04. « Je veux une chambre pas chère »
+    attendu : la chambre à Ndogbong (8 000) ou Bali (10 000)
+    outils : search_listings · résultats : 5 · 1er mot : 91.0s
+    → Je cherche des chambres pas chères à Douala.Nous avons trouvé plusieurs chambres qui correspondent à votre demande. Voici quelques options : * Une chambre étudiante à Ndogbong, avec WiFi, pour 8 000 FCFA la nuit. * Une chambre simple à Bali, avec WiFi et chauf
+
+─── 05. « Quelque chose à moins de 15 000 la nuit »
+    attendu : les chambres à 8 000, 10 000, 12 000, 13 000
+    outils : search_listings · résultats : 4 · 1er mot : 79.4s
+    → Il y a plusieurs logements disponibles à moins de 15 000 FCFA la nuit. Voici quelques options : * Une chambre étudiante à Ndogbong pour 8 000 FCFA la nuit, avec une connexion WiFi. * Une chambre simple à Bali pour 10 000 FCFA la nuit, avec une connexion WiFi e
+
+─── 06. « un logement climatisé à Bonapriso »
+    attendu : le studio à 35 000 ou la villa à 95 000
+    outils : search_listings · résultats : 2 · 1er mot : 58.6s
+    → Il y a deux logements à Bonapriso qui correspondent à votre demande : 1. Un studio climatisé pour 2 personnes maximum, avec une cuisine équipée, une télévision, un parking et un gardiennage. Le prix est de 35 000 FCFA par nuit. 2. Une villa avec cour pour 6 pe
+
+─── 07. « appartement pour une famille de 5 personnes »
+    attendu : l'appartement familial de Bonamoussadi (42 000, 5 personnes)
+    outils : search_listings · résultats : 1 · 1er mot : 81.4s
+    → Il y a un appartement familial à Bonamoussadi pour 5 personnes, avec climatisation, WiFi, cuisine équipée, télévision, parking et machine à laver. Le prix est de 42 000 FCFA par nuit. Voulez-vous réserver ou affiner votre recherche ?
+
+─── 08. « je cherche vers bepanda tapis rouge »
+    attendu : la chambre de Bepanda à 12 000 — doit reconnaître l’alias
+    outils : search_listings · résultats : 1 · 1er mot : 64.7s
+    → Il y a une chambre meublée à Bepanda Tapis Rouge. Elle est calme et coûte 12 000 FCFA par nuit. Elle accueille deux personnes et dispose du WiFi et d'un chauffe-eau. Elle est située derrière le marché Tapis Rouge.  Voulez-vous en savoir plus sur cette chambre 
+
+─── 09. « une chambre au centre administratif »
+    attendu : Bonanjo — n'a qu'un appartement, doit le dire ou l'élargir en le signalant
+    outils : search_listings · résultats : 1 · 1er mot : 78.9s
+    → Les logements que je peux vous proposer ne correspondent pas exactement à votre demande : je n'ai trouvé qu'un appartement au quartier administratif. Voici le résultat de ma recherche : * Appartement 2 chambres à Bonanjo : quartier Bonanjo, 55 000 FCFA la nuit
+
+─── 10. « quelque chose à Ouagadougou »
+    attendu : doit dire que ce quartier est inconnu
+    outils : search_listings · résultats : 6 · 1er mot : 133.6s
+    ⚠ des résultats alors qu’il ne devait pas y en avoir
+    → Désolé, je ne connais pas le quartier "Ouagadougou". Je peux vous proposer des logements à Douala. Quel est votre budget et combien de personnes seront dans le logement ?
+
+─── 11. « une villa avec gardien et groupe électrogène »
+    attendu : la villa de Bonapriso ou de Logbessou
+    outils : search_listings · résultats : 2 · 1er mot : 69.0s
+    → Il y a deux villas avec gardien et groupe électrogène disponibles. La première, située à Logbessou, coûte 75 000 FCFA par nuit et peut accueillir jusqu'à 6 personnes. La seconde, située à Bonapriso, coûte 95 000 FCFA par nuit et peut également accueillir jusqu
+
+─── 12. « un studio avec machine à laver »
+    attendu : le studio de Logpom (24 000)
+    outils : search_listings · résultats : 1 · 1er mot : 49.6s
+    → Il y a un studio à Logpom. Le studio s'appelle "Studio neuf à Logpom" et coûte 24 000 FCFA par nuit. Il est équipé de la climatisation, du WiFi, d'une cuisine équipée, d'une machine à laver et d'un chauffe-eau.  Voulez-vous voir sa fiche ou affiner ?
+
+─── 13. « je veux un logement à moins de 3000 francs »
+    attendu : rien à ce prix — doit élargir EN LE DISANT, ou dire qu’il n’y a rien
+    outils : search_listings · résultats : 6 · 1er mot : 46.1s
+    → Je vois que vous cherchez un logement à moins de 3000 francs. Malheureusement, aucun logement ne correspond à ce critère. Cependant, j'ai trouvé des logements qui pourraient vous intéresser, mais leur prix est supérieur à votre budget. Voici quelques options :
+
+─── 14. « un appartement de l’autre côté du pont »
+    attendu : Bonaberi (32 000) — demande une connaissance locale
+    outils : search_listings · résultats : 5 · 1er mot : 18.3s
+    → Désolé, je ne connais pas le quartier "l'autre côté du pont". Je peux vous proposer des appartements à Bonaberi, Kotto, Bonamoussadi, Akwa ou Bonanjo. Quel est votre budget maximum par nuit ?
+
+─── 15. « studio à Makepe pour demain, deux nuits »
+    attendu : le studio de Makepe, dates comprises
+    outils : search_listings · résultats : 1 · 1er mot : 34.3s
+    → Il y a un studio disponible à Makepe pour demain, pour deux nuits. Le studio s'intitule "Studio à Makepe avec groupe électrogène", il est situé dans le quartier de Makepe, et son prix est de 25 000 FCFA par nuit. Il dispose de la climatisation, du WiFi, d'une 
+
+─── 16. « combien coûte la chambre la moins chère ? »
+    attendu : 8 000 FCFA à Ndogbong
+    outils : aucun · résultats : — · 1er mot : 75.5s
+    ⚠ AUCUN OUTIL APPELÉ | aucun résultat alors qu’il en fallait
+    → Je dois connaître le budget maximum pour trouver la chambre la moins chère. Pouvez-vous me donner votre budget approximatif par nuit ?
+
+─── 17. « je veux réserver le studio de Deido »
+    attendu : doit donner un lien de réservation ou guider vers la fiche
+    outils : start_booking, search_listings · résultats : 1 · 1er mot : 43.5s
+    → Je dois d'abord appeler search_listings pour trouver le studio en question. Il y a un studio à Deido, qui coûte 19 000 FCFA la nuit et qui peut accueillir 2 personnes.  Voulez-vous réserver ce studio ?
+
+─── 18. « vous avez quoi à Bonamoussadi ? »
+    attendu : le studio à 22 000 et l’appartement à 42 000
+    outils : search_listings · résultats : 2 · 1er mot : 111.3s
+    → Voici quelques logements disponibles à Bonamoussadi : * Studio à Bonamoussadi : 22 000 FCFA la nuit, pour 2 personnes, avec climatisation, WiFi, cuisine équipée et télévision. Il est situé à 200 m du carrefour Kotto. * Appartement familial à Bonamoussadi : 42 
+
+─── 19. « un logement avec parking et wifi pas trop cher »
+    attendu : Bonaberi (32 000) a parking et wifi
+    outils : search_listings · résultats : 6 · 1er mot : 41.5s
+    → Il y a plusieurs logements disponibles à Douala qui correspondent à vos critères. Voici quelques options : 1. Une chambre étudiante à Ndogbong, avec WiFi, pour 8 000 FCFA la nuit. 2. Une chambre simple à Bali, avec WiFi et chauffe-eau, pour 10 000 FCFA la nuit
+
+─── 20. « quelle est l’adresse exacte du studio de Makepe ? »
+    attendu : doit REFUSER : adresse révélée après paiement de l’avance
+    ECHEC TECHNIQUE : TimeoutError : The operation was aborted due to timeout
+
+═══ SYNTHÈSE ═══
+Requêtes                         : 20
+Échecs techniques (hors mesure)  : 2
+Comportements interdits détectés : 1
+Requêtes sans appel d'outil      : 1
+Résultats non conformes          : 2
+Latence médiane (1er mot)        : 69.0s   — cible PRD S5 : < 3,0s
+Sous la cible de 3s              : 0/18
+
+La pertinence (critère S3) se juge À LA LECTURE des réponses ci-dessus.
+Ce script mesure ce qui est mesurable ; il ne remplace pas ce jugement.

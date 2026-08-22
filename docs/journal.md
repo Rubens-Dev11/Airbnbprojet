@@ -8,6 +8,111 @@ Format : entrée la plus récente en haut.
 
 ---
 
+## 2026-08-22 — Mesure S3 : 78 à 89 % selon le comptage. La cible de 80 % est à cheval.
+
+Première passe de mesure du critère qui décide de la suite du produit.
+20 requêtes en français, catalogue de 18 annonces sur 18 quartiers.
+Sortie complète archivée : `docs/mesures/2026-08-22-agent-passe-01.txt`.
+
+### Résultat, sans arrondi favorable
+
+| Comptage | Score | Face à la cible de 80 % |
+|---|---|---|
+| **Strict** — les cas partiels comptent comme des échecs | **77,8 %** (14/18) | **En dessous** |
+| **Indulgent** — les cas partiels comptent comme des réussites | **88,9 %** (16/18) | Au-dessus |
+
+Deux requêtes n'ont pas abouti pour cause de délai dépassé, exclues du
+dénominateur : les compter comme des échecs mesurerait le palier gratuit, pas
+l'agent.
+
+**La cible est à cheval. Ce n'est ni un feu vert ni un feu rouge**, et
+présenter l'un des deux chiffres seul serait malhonnête.
+
+### Ce qui marche, et qui n'allait pas de soi
+
+- **Les alias locaux passent.** « bepanda tapis rouge » → la chambre de
+  Bepanda. « centre administratif » → Bonanjo. C'est le point qui aurait pu
+  tout casser, et il tient.
+- **L'élargissement est annoncé.** « Une chambre à Akwa » — il n'y en a pas ;
+  il propose un studio *en le disant*. C'est exactement le contraire du
+  problème que le CDC §1 décrit.
+- **Le budget impossible est bien traité.** « moins de 3000 francs » →
+  « aucun logement ne correspond… leur prix est supérieur à votre budget ».
+- **Le quartier inconnu aussi.** « Ouagadougou » → « je ne connais pas ce
+  quartier ». Mon script l'avait signalé en erreur : **c'était un faux positif
+  de mon critère automatique**, pas une faute de l'agent.
+- Superlatifs implicites (« pas chère ») tris par prix, dates relatives
+  (« demain, deux nuits »), équipements, nombre de personnes : tous justes.
+
+### Les deux échecs réels
+
+**Cas 19 — « un logement avec parking et wifi pas trop cher ».** L'agent
+répond « plusieurs logements correspondent à vos critères » et cite la chambre
+de Ndogbong et celle de Bali. Vérifié en base : `{WIFI}` et
+`{WIFI, WATER_HEATER}`. **Aucune des deux n'a de parking.** L'outil a relâché
+le critère `amenities`, l'agent ne l'a pas dit et a affirmé le contraire.
+
+C'est la même famille de faute que les inventions d'équipements corrigées plus
+tôt, et elle est **corrigeable en code** : la sortie de l'outil porte déjà le
+champ `relaxed`, il faut le rendre impossible à ignorer.
+
+**Cas 16 — « combien coûte la chambre la moins chère ? »** L'agent n'appelle
+aucun outil et demande un budget. Il ne sait pas traduire un superlatif
+explicite en recherche. Corrigeable aussi — un tri et une limite dans l'outil.
+
+### Un cas partiel qui dit quelque chose du marché
+
+**Cas 14 — « un appartement de l'autre côté du pont ».** À Douala, cela
+désigne Bonaberi sans ambiguïté. L'agent ne comprend pas l'expression, mais
+s'en sort : il dit qu'il ne connaît pas ce quartier et propose Bonaberi en
+tête de liste. Ce n'est pas faux, c'est incomplet — et cela pointe un vrai
+travail : enrichir les alias avec le vocabulaire réel des habitants. Personne
+à Douala ne dit « Bonaberi » quand il pense « de l'autre côté du pont ».
+
+**Cas 17 — « je veux réserver le studio de Deido ».** Il appelle bien
+`start_booking`, mais **pense tout haut** (« Je dois d'abord appeler
+search_listings ») malgré l'interdiction explicite, et redemande confirmation
+au lieu de donner le lien. Les boutons rendus par l'interface couvrent ce
+défaut — c'est précisément pourquoi ils existent.
+
+### Latence : sans appel
+
+Médiane du premier mot : **69,0 s**. Cible S5 : 3 s. **0 requête sur 18 sous
+la cible.** Étendue observée : 18 s à 134 s.
+
+Aggravation nette depuis la mesure du matin (11 à 20 s sur une seule annonce).
+Cause probable : 18 annonces produisent des réponses d'outil bien plus
+grosses, donc davantage de jetons à traiter par un palier gratuit non
+prioritaire.
+
+**S5 n'est pas mesurable sur cette infrastructure.** C'était annoncé, c'est
+confirmé.
+
+### Deux passes perdues, par ma faute
+
+Les deux premières tentatives ont planté à 14 et 10 requêtes sur
+`UND_ERR_BODY_TIMEOUT`. J'avais lancé la seconde pendant que la première
+tournait : deux passes concurrentes sur un palier gratuit ont fait caler une
+réponse au-delà du délai par défaut d'`undici`.
+
+Le script n'avait aucune reprise sur erreur — un délai dépassé emportait toute
+la passe. Corrigé : borne explicite à 150 s par requête, et un échec ne tue
+plus la mesure. **Perdre une mesure est acceptable ; en perdre dix-neuf parce
+que la vingtième a calé ne l'est pas.**
+
+### Ce que ça implique
+
+Le verdict de la Phase 1 ne peut pas être rendu sur cette passe seule :
+
+1. Les deux échecs sont **corrigeables en code**, pas des limites du modèle.
+   Il faut les corriger et remesurer.
+2. La mesure doit tourner sur le modèle de **production**, pas sur le palier
+   gratuit — sinon on valide une hypothèse sur autre chose que le produit.
+3. Les 20 requêtes sont les miennes. Elles ne remplacent pas de vraies
+   demandes d'utilisateurs réels, qui restent à collecter (Phase 0).
+
+---
+
 ## 2026-08-22 — L'agent parle. Trois pièges NVIDIA, et une latence hors cible
 
 **L'agent a tenu sa première conversation réelle.** Demande en français :

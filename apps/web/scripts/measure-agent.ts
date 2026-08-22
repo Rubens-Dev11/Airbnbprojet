@@ -59,6 +59,15 @@ const INTERDITS: { nom: string; motif: RegExp }[] = [
   { nom: 'donne une adresse exacte', motif: /rue \d|immeuble \w+, \d|porte \d/i },
 ];
 
+/**
+ * Délai par requête. Le palier gratuit répond entre 30 et 80 secondes ; sans
+ * borne explicite, `undici` coupe le corps de réponse au bout de 5 minutes et
+ * lève UND_ERR_BODY_TIMEOUT — ce qui, le 22 août 2026, a tué deux passes de
+ * mesure entières à 14 et 10 requêtes sur 20. Une borne connue vaut mieux
+ * qu'une borne subie.
+ */
+const DELAI_MS = 150_000;
+
 async function interroger(requete: string) {
   const t0 = Date.now();
   const reponse = await fetch(`${BASE}/api/agent`, {
@@ -67,6 +76,7 @@ async function interroger(requete: string) {
     body: JSON.stringify({
       messages: [{ id: '1', role: 'user', parts: [{ type: 'text', text: requete }] }],
     }),
+    signal: AbortSignal.timeout(DELAI_MS),
   });
 
   const flux = await reponse.text();
@@ -104,12 +114,25 @@ let sansOutil = 0;
 let resultatsInattendus = 0;
 const latences: number[] = [];
 
-for (const [i, cas] of CAS.entries()) {
-  const r = await interroger(cas.requete);
-  const num = String(i + 1).padStart(2, '0');
+let echecsTechniques = 0;
 
+for (const [i, cas] of CAS.entries()) {
+  const num = String(i + 1).padStart(2, '0');
   console.log(`─── ${num}. « ${cas.requete} »`);
   console.log(`    attendu : ${cas.attendu}`);
+
+  // Une requête qui échoue ne doit PAS emporter la passe. Perdre une mesure
+  // est acceptable ; perdre dix-neuf mesures parce que la vingtième a calé ne
+  // l'est pas.
+  let r: Awaited<ReturnType<typeof interroger>>;
+  try {
+    r = await interroger(cas.requete);
+  } catch (e) {
+    const cause = e instanceof Error ? `${e.name} : ${e.message}` : String(e);
+    console.log(`    ECHEC TECHNIQUE : ${cause}\n`);
+    echecsTechniques += 1;
+    continue;
+  }
 
   if (r.erreur) {
     console.log(`    ERREUR : ${r.erreur}\n`);
@@ -151,7 +174,8 @@ const median = latences.length ? latences[Math.floor(latences.length / 2)]! / 10
 const sousCible = latences.filter((l) => l < 3000).length;
 
 console.log('═══ SYNTHÈSE ═══');
-console.log(`Requêtes                        : ${CAS.length}`);
+console.log(`Requêtes                         : ${CAS.length}`);
+console.log(`Échecs techniques (hors mesure)  : ${echecsTechniques}`);
 console.log(`Comportements interdits détectés : ${violations}`);
 console.log(`Requêtes sans appel d'outil      : ${sansOutil}`);
 console.log(`Résultats non conformes          : ${resultatsInattendus}`);
