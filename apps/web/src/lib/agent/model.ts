@@ -21,20 +21,50 @@ import type { LanguageModel } from 'ai';
  * D'où cette abstraction : basculer coûte une variable d'environnement, et on
  * peut comparer les deux sur le MÊME jeu de requêtes.
  */
-export type AgentProvider = 'openai' | 'anthropic';
+export type AgentProvider = 'openai' | 'anthropic' | 'nvidia';
+
+/**
+ * NVIDIA NIM expose une API **compatible OpenAI** — vérifié le 22 août 2026 :
+ * `GET https://integrate.api.nvidia.com/v1/models` répond 200 au format
+ * OpenAI. Un seul `baseURL` suffit donc, pas de client dédié.
+ *
+ * Latence mesurée depuis le Cameroun le même jour :
+ *   integrate.api.nvidia.com  connect 49 ms   TLS 288 ms
+ *   api.openai.com            connect 30 ms   TLS  74 ms
+ *   api.anthropic.com         connect 41 ms   TLS  91 ms
+ *
+ * La poignée TLS de NVIDIA est ~200 ms plus lente. Sur une connexion
+ * maintenue ouverte l'écart s'amortit ; sur une première requête, il s'ajoute
+ * au budget des 3 secondes du PRD (S5). À surveiller, pas rédhibitoire.
+ */
+const NVIDIA_BASE_URL = 'https://integrate.api.nvidia.com/v1';
 
 export function resolveModel(): { model: LanguageModel; provider: AgentProvider; name: string } {
-  const provider = (process.env.AGENT_PROVIDER ?? 'openai') as AgentProvider;
+  const provider = (process.env.AGENT_PROVIDER ?? 'nvidia') as AgentProvider;
+
+  if (provider === 'nvidia') {
+    const apiKey = process.env.NVIDIA_API_KEY;
+    if (!apiKey) throw new Error('NVIDIA_API_KEY manquante. Voir .env.example.');
+    // Mistral Large : solide en français et gère les appels d'outils, ce qui
+    // est indispensable ici — un modèle sans outils ne peut pas chercher dans
+    // le catalogue, il ne peut qu'inventer.
+    const name = process.env.AGENT_MODEL ?? 'mistralai/mistral-large-2-instruct';
+    return {
+      model: createOpenAI({ apiKey, baseURL: NVIDIA_BASE_URL })(name),
+      provider,
+      name,
+    };
+  }
 
   if (provider === 'anthropic') {
     const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) throw new Error("ANTHROPIC_API_KEY manquante. Voir .env.example.");
+    if (!apiKey) throw new Error('ANTHROPIC_API_KEY manquante. Voir .env.example.');
     const name = process.env.AGENT_MODEL ?? 'claude-sonnet-5';
     return { model: createAnthropic({ apiKey })(name), provider, name };
   }
 
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error("OPENAI_API_KEY manquante. Voir .env.example.");
+  if (!apiKey) throw new Error('OPENAI_API_KEY manquante. Voir .env.example.');
   const name = process.env.AGENT_MODEL ?? 'gpt-4o';
   return { model: createOpenAI({ apiKey })(name), provider, name };
 }

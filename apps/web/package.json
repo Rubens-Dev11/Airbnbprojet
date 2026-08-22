@@ -13,6 +13,7 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.41",
     "@ai-sdk/openai": "^4.0.46",
+    "@ai-sdk/react": "^4.0.80",
     "@app/shared": "workspace:*",
     "@app/ui-tokens": "workspace:*",
     "@supabase/ssr": "^0.12.4",

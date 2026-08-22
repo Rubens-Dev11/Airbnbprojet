@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { formatFcfa } from '@app/shared';
 import { createClient } from '@/lib/supabase/server.ts';
 import { getCurrentProfile } from '@/lib/auth.ts';
+import { AssistantPanel } from './assistant-panel.tsx';
 
 export const metadata = {
   title: 'Chambres meublées à Douala',
@@ -54,6 +55,11 @@ export default async function HomePage() {
           Bientôt&nbsp;: <em>« un studio climatisé à Akwa, moins de 25 000 la nuit, du 12 au 15 »</em>.
         </p>
       </header>
+
+      {/* L'assistant est placé AVANT le catalogue, délibérément : c'est le
+          canal de réservation principal (ADR-005), pas un accessoire. Le
+          reléguer plus bas contredirait le positionnement du produit. */}
+      <AssistantPanel />
 
       <section className="flex flex-wrap gap-4">
         <Stat label="Quartiers couverts" value={String(neighborhoodCount ?? 0)} />
