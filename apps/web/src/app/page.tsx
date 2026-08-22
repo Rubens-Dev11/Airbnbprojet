@@ -27,7 +27,7 @@ export default async function HomePage() {
       // central du marché. Une carte sans image ne se distingue pas d'une
       // annonce WhatsApp.
       .select(
-        'id, title, price_per_night, landmark, neighborhoods(name), listing_images(storage_path, position)',
+        'id, title, price_per_night, landmark, is_demo, neighborhoods(name), listing_images(storage_path, position)',
       )
       .order('created_at', { ascending: false })
       .limit(12),
@@ -55,6 +55,27 @@ export default async function HomePage() {
           Bientôt&nbsp;: <em>« un studio climatisé à Akwa, moins de 25 000 la nuit, du 12 au 15 »</em>.
         </p>
       </header>
+
+      {/* Avertissement impossible à manquer dès qu'une annonce inventée est
+          publiée. Les règles de travail l'exigent : « ne jamais laisser de
+          données de démonstration se faire passer pour des données réelles ».
+          Une bannière discrète ne suffirait pas — elle doit gêner. */}
+      {listings?.some((l) => l.is_demo) && (
+        <aside
+          role="status"
+          className="rounded border-2 border-dashed border-accent-500 bg-white p-4 text-sm"
+        >
+          <p className="font-medium text-accent-500">Données de démonstration</p>
+          <p className="mt-1 text-ink-700">
+            Certaines annonces ci-dessous sont <strong>inventées</strong> et servent uniquement à
+            développer et à mesurer l&apos;assistant. Elles ne correspondent à aucun logement réel
+            et ne doivent jamais être proposées à un utilisateur.
+          </p>
+          <p className="mt-1 text-gray-500">
+            Purge&nbsp;: <code>pnpm seed:demo -- --purge</code>
+          </p>
+        </aside>
+      )}
 
       {/* L'assistant est placé AVANT le catalogue, délibérément : c'est le
           canal de réservation principal (ADR-005), pas un accessoire. Le

@@ -31,6 +31,26 @@ jusqu'au paiement de l'avance. Sans cela, la plateforme est un annuaire gratuit
 et n'encaisse rien. Ce n'est pas un détail d'implémentation, c'est ce qui
 décide si le modèle tient.
 
+## Taux d'avance : 20 % — décidé le 22 août 2026
+
+**Décision du fondateur**, sur un argument de marché que je n'avais pas :
+
+> « le taux d'avance c'est 20 % (par défaut pour l'instant), sinon aucun hôte
+> n'acceptera, c'est cher »
+
+C'est un raisonnement sur l'acceptabilité côté **hôte**, pas côté locataire —
+angle absent de `plan.md`, qui proposait 30 % en raisonnant uniquement sur le
+besoin de trésorerie de la plateforme. Un taux que les propriétaires refusent
+ne rapporte rien, quel que soit son niveau.
+
+Marqué « par défaut pour l'instant » : c'est une valeur de travail, pas un
+arbitrage définitif. Elle vit dans `apps/web/src/lib/pricing.ts`, pilotée par
+`DEPOSIT_RATE_PERCENT`, à un seul endroit — et **jamais confiée à un modèle de
+langage**, qui en inventerait un (constaté le 22 août : l'agent annonçait
+« généralement 10 % » de sa propre initiative).
+
+À reprendre après les premiers retours de propriétaires réels.
+
 ## Ce qui n'est PAS décidé ici, et pourquoi
 
 `plan.md` §5 propose des chiffres précis : avance de 30 %, commission de 10 %,

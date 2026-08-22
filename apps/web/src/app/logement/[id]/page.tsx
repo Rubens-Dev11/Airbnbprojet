@@ -42,7 +42,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
   const { data: listing } = await supabase
     .from('listings')
     .select(
-      'id, title, description, price_per_night, listing_type, max_guests, amenities, landmark, neighborhoods(name), listing_images(storage_path, position)',
+      'id, title, description, price_per_night, listing_type, max_guests, amenities, landmark, is_demo, neighborhoods(name), listing_images(storage_path, position)',
     )
     .eq('id', id)
     .eq('is_active', true)
@@ -59,6 +59,19 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
       <Link href="/" className="text-sm text-brand-700 hover:underline">
         ← Tous les logements
       </Link>
+
+      {listing.is_demo && (
+        <aside
+          role="status"
+          className="rounded border-2 border-dashed border-accent-500 bg-white p-4 text-sm"
+        >
+          <p className="font-medium text-accent-500">Annonce de démonstration</p>
+          <p className="mt-1 text-ink-700">
+            Ce logement est <strong>inventé</strong>. Adresse, téléphone et description ne
+            correspondent à rien de réel. Ne jamais le proposer à un utilisateur.
+          </p>
+        </aside>
+      )}
 
       {photos.length > 0 && (
         <div className="grid gap-2 sm:grid-cols-2">

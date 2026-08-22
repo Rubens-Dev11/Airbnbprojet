@@ -262,6 +262,7 @@ export type Database = {
           description: string
           id: string
           is_active: boolean
+          is_demo: boolean
           landmark: string | null
           listing_type: Database["public"]["Enums"]["listing_type"]
           max_guests: number
@@ -277,6 +278,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_demo?: boolean
           landmark?: string | null
           listing_type: Database["public"]["Enums"]["listing_type"]
           max_guests?: number
@@ -292,6 +294,7 @@ export type Database = {
           description?: string
           id?: string
           is_active?: boolean
+          is_demo?: boolean
           landmark?: string | null
           listing_type?: Database["public"]["Enums"]["listing_type"]
           max_guests?: number
@@ -403,6 +406,7 @@ export type Database = {
           full_name: string
           id: string
           is_approved: boolean
+          is_demo: boolean
           phone: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string
@@ -413,6 +417,7 @@ export type Database = {
           full_name: string
           id: string
           is_approved?: boolean
+          is_demo?: boolean
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
@@ -423,6 +428,7 @@ export type Database = {
           full_name?: string
           id?: string
           is_approved?: boolean
+          is_demo?: boolean
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
